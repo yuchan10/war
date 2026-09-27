@@ -1,0 +1,10 @@
+<!doctype html><html lang="ko"><meta charset="utf-8"><title>프롤로그 장면 검수</title><style>body{background:#141913;color:#dcdcc8;font:14px system-ui;margin:16px}main{display:grid;grid-template-columns:1fr 1fr;gap:14px}canvas{width:100%}h2{font-size:15px;margin:4px}p{min-height:20px}</style><main></main><script type="module">
+import{World}from'../src/world.js';import{Renderer}from'../src/renderer.js';
+const input={mouse:{x:650,y:330,down:false},movement:()=>({x:0,y:0})};
+for(const [time,label]of [[.1,'은신 위치와 집행 대형'],[4.4,'정면 조준'],[5.28,'첫 번째 피격 직후'],[7.5,'사격 종료, 맞은 자리에 쓰러짐'],[9.5,'장교 퇴장 중'],[11.5,'오른쪽 화면 밖으로 이동'],[23,'수색병 접근 · E 제압 가능'],[24,'소총 탈취 후 전투']]){
+ const w=new World({play(){}});w.startPrologue();for(let t=0;t<time;t+=1/120){if(time>=23){input.mouse={x:195,y:550,down:false};if(w.prologue.canAmbush){if(time===23)break;input.consumeInteract=()=>true;}}w.update(1/120,input);}
+ const box=document.createElement('section'),h=document.createElement('h2'),canvas=document.createElement('canvas'),p=document.createElement('p');h.textContent=label;p.textContent=w.prologue.caption;
+ canvas.width=1200;canvas.height=720;box.append(h,canvas,p);document.querySelector('main').append(box);
+ new Renderer(canvas,{values:{}}).draw(w,input);
+}
+</script></html>
