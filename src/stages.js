@@ -2,15 +2,15 @@
 const block=(x,y,w,h,material='concrete',kind='barrier')=>({x,y,w,h,material,kind});
 function post(wall,bottom,delay){
   const x=wall.x+wall.w+27,y=bottom?wall.y+wall.h-25:wall.y+25;
-  return {type:'shooter',x,y,cover:{wall,hide:{x,y},peek:{x,y:bottom?wall.y+wall.h+50:wall.y-50},delay}};
+  return {type:'shooter',x,y,angle:Math.PI,cover:{wall,hide:{x,y},peek:{x,y:bottom?wall.y+wall.h+50:wall.y-50},delay}};
 }
 function stage(name,theme,walls,terrain){
   const posts=walls.slice(0,3);
   return {name,theme,terrain,spawn:{x:145,y:360},exit:{x:1108,y:360,radius:36},walls,
     enemies:[
-      ...posts.map((wall,i)=>({...post(wall,i%2===1,.7+i*.4),skill:['regular','veteran','rookie'][i]})),
+      ...posts.map((wall,i)=>({...post(wall,i%2===1,.7+i*.4)})),
       ...posts.map((wall,i)=>({type:'assault',x:wall.x+wall.w+65,y:wall.y+wall.h/2,
-        skill:['veteran','rookie','regular'][i],advancePoint:{x:280+i*40,y:285+i*70}}))
+        advancePoint:{x:280+i*40,y:285+i*70}}))
     ]};
 }
 export const STAGES=[
@@ -43,5 +43,12 @@ export const STAGES=[
     block(895,430,95,140,'concrete','bunker'),block(535,515,135,38),
     block(870,85,160,45,'concrete','bunker'),block(1060,185,38,100)
   ],{base:'#3d4542',road:[[42,360],[1158,360]],roadWidth:155,markings:true,courtyard:{x:665,y:315,w:365,h:100}})
-];
-
+].map((stage,index)=>{
+  // Upgrade one more soldier each sector; skill and courage use separate orders.
+  const veterans=[1,3,0,4,2,5].slice(0,index+1);
+  const resolute=[4,0,5,1,3,2].slice(0,index+1);
+  return {...stage,enemies:stage.enemies.map((enemy,i)=>({...enemy,
+    skill:veterans.includes(i)?'veteran':['regular','regular','rookie','regular','rookie','regular'][i],
+    courage:resolute.includes(i)?'resolute':['cautious','steady','steady','steady','cautious','steady'][i]
+  }))};
+});

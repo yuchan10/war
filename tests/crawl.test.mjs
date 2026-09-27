@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {injuryMoveScale} from '../src/injury.js';
 import {animateStride} from '../src/soldier.js';
 import {updateFootsteps} from '../src/footsteps.js';
+test('leg loss limits crawling to at most four percent speed and keeps arm penalties',()=>{
+ for(const speed of [101.5,59.5]){
+  const e={speed,legsDisabled:true,missingLegs:[1],crawlPhase:Math.PI/2};
+  assert.ok(Math.abs(speed*injuryMoveScale(e)-speed*.04)<1e-8);
+  e.missingArms=[1];assert.ok(Math.abs(speed*injuryMoveScale(e)-(speed-25)*.04)<1e-8);
+  e.missingLegs=[1,-1];assert.ok(Math.abs(speed*injuryMoveScale(e)-(speed-25)*.025)<1e-8);
+ }
+});
 test('crawling remains possible with both legs and arms missing, slower than one leg loss',()=>{
  const one={legsDisabled:true,missingLegs:[-1]},two={...one,missingLegs:[-1,1]},none={...two,missingArms:[-1,1]};
  assert.ok(injuryMoveScale(one)<.15);assert.ok(injuryMoveScale(two)<injuryMoveScale(one));

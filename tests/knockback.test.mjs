@@ -11,7 +11,7 @@ test('impulse moves along impact direction and decays independent of timestep',(
   assert.ok(a.x>600);assert.equal(a.y,360);
   assert.ok(Math.abs(a.x-b.x)<1e-8);assert.ok(a.knockX<460);
 });
-test('boss resistance and boundaries limit displacement',()=>{
+test('knockback resistance and boundaries limit displacement',()=>{
   const a={x:600,y:360,radius:20},b={...a,knockbackScale:.18};
   applyKnockback(a,1,0,460);applyKnockback(b,1,0,460);
   moveKnockback(a,.1);moveKnockback(b,.1);assert.ok(b.x<a.x);
@@ -19,7 +19,7 @@ test('boss resistance and boundaries limit displacement',()=>{
   assert.equal(a.x,CONFIG.arena.right-a.radius);
 });
 test('actual player bullet impact applies knockback to enemy',()=>{
-  const w=new World({play(){}},()=>.3);w.start();w.spawnTimer=999;w.spawnEnemy('chaser');
+  const w=new World({play(){}},()=>.3);w.start();w.enemies=[];w.spawnEnemy('assault');
   const e=w.enemies[0];Object.assign(e,{x:700,y:360,born:0});
   w.shoot(680,360,0,false,1,900);
   const input={mouse:{x:900,y:360,down:false},movement:()=>({x:0,y:0}),consumeDash:()=>false};

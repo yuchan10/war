@@ -1,16 +1,18 @@
-import { CONFIG } from './config.js';
-import { hasLineOfSight } from './arena.js';
+import { visiblePoint } from './visibility.js';
+import { HEARING } from './hearing.js';
 
-export function updateContact(e,player,walls,dt){
+export function updateContact(e,player,walls,dt,visible=visiblePoint({...e,angle:e.angle??Math.PI},player,walls)){
   e.contactAge=(e.contactAge??Infinity)+dt;
-  const visible=hasLineOfSight(e,player,walls);
+  e.heardAge=(e.heardAge??Infinity)+dt;
+  if(e.heardAge>HEARING.memory)e.heardPosition=null;
   if(visible){
+    e.heardPosition=null;
     e.lastContact={x:player.x,y:player.y,vx:player.vx||0,vy:player.vy||0};
     e.contactAge=0;
     return {visible:true,target:player};
   }
-  if(!e.lastContact||e.contactAge>CONFIG.suppression.memory)return {visible:false,target:null};
-  const last=e.lastContact,lead=CONFIG.suppression.extrapolation;
-  // Estimate the nearby hiding place from the last observed movement only.
-  return {visible:false,target:{x:last.x+last.vx*lead,y:last.y+last.vy*lead,vx:0,vy:0}};
+  if(e.heardPosition&&e.heardAge<=e.contactAge)return {visible:false,target:{...e.heardPosition,vx:0,vy:0},heard:true};
+  if(!e.lastContact)return {visible:false,target:null};
+  // Keep the actual last sighting until a new observation replaces it.
+  return {visible:false,target:{x:e.lastContact.x,y:e.lastContact.y,vx:0,vy:0}};
 }

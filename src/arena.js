@@ -48,15 +48,21 @@ const a=CONFIG.arena;
 const boundaries=[{x:a.left-40,y:a.top-40,w:40,h:a.bottom-a.top+80},{x:a.right,y:a.top-40,w:40,h:a.bottom-a.top+80},{x:a.left-40,y:a.top-40,w:a.right-a.left+80,h:40},{x:a.left-40,y:a.bottom,w:a.right-a.left+80,h:40}];
 export function traceBullet(b,dt,walls=WALLS,onSegment=()=>false,onImpact=()=>{}) {
   if(!b.active)return;
-  const dx=b.vx*dt,dy=b.vy*dt;let nearest=null;
+  const remaining=b.remainingRange??Infinity;
+  if(remaining<=0){b.active=false;return;}
+  const distance=Math.hypot(b.vx,b.vy)*dt;
+  const scale=distance>0?Math.min(1,remaining/distance):1;
+  const dx=b.vx*dt*scale,dy=b.vy*dt*scale;let nearest=null;
   for(const wall of [...walls,...boundaries]){
     const hit=sweepBox(b.x,b.y,dx,dy,wall,b.radius);
     if(hit&&(!nearest||hit.t<nearest.t))nearest=hit;
   }
   const t=nearest?nearest.t:1;
   b.px=b.x;b.py=b.y;b.x+=dx*t;b.y+=dy*t;
+  b.remainingRange=Math.max(0,remaining-Math.hypot(dx,dy)*t);
   if(onSegment(b))return;
   if(nearest){b.active=false;onImpact(b);}
+  else if(distance>=remaining)b.active=false;
 }
 
 function clearPath(from,to,r,walls){return !walls.some(w=>sweepBox(from.x,from.y,to.x-from.x,to.y-from.y,w,r));}

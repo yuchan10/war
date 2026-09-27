@@ -11,11 +11,12 @@ test('each squad uses exactly two shared role definitions',()=>{
     assert.ok(s.enemies.filter(e=>ENEMIES[e.type].role==='support').every(e=>e.cover));
   }
 });
-test('assault advances toward a distant sighted target and stops to fire at rifle range',()=>{
+test('assault fires at visible targets beyond bullet range and advances between shots',()=>{
   const e={...ENEMIES.assault,x:800,y:350,timer:0};let shots=0;
-  const p={x:200,y:350};const motion=updateAssault(e,.01,p,[],()=>shots++);assert.ok(motion.x<0);
-  p.x=550;assert.deepEqual(updateAssault(e,.01,p,[],()=>shots++),{x:0,y:0});
+  const p={x:200,y:350};const motion=updateAssault(e,.01,p,[],()=>shots++);assert.deepEqual(motion,{x:0,y:0});
+  assert.deepEqual(updateAssault(e,.01,p,[],()=>shots++),{x:0,y:0});
   updateAssault(e,.4,p,[],()=>shots++);assert.equal(shots,1);
+  assert.ok(updateAssault(e,.01,p,[],()=>shots++).x<0);
 });
 test('firing gives assault soldiers a fixed heard position, not a moving tracker',()=>{
   const w=new World({play(){}});w.start();const e=w.enemies.find(e=>e.role==='assault');

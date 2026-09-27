@@ -4,7 +4,7 @@ export function animateStride(entity,oldX,oldY){
   const travelled=Math.hypot(entity.x-oldX,entity.y-oldY);
   if(entity.legsDisabled){
     entity.walking=false;entity.crawling=travelled>.002;
-    entity.crawlPhase=(entity.crawlPhase||0)+travelled*.22;
+    entity.crawlPhase=(entity.crawlPhase||0)+travelled*.6;
     if(entity.crawling)entity.walkAngle=Math.atan2(entity.y-oldY,entity.x-oldX);
     return;
   }
@@ -20,7 +20,7 @@ export function drawSoldier(c,e,player,recoil=0){
   const cloth=player?'#7e8e63':'#ad936a',dark=player?'#44553c':'#6b573b';
   c.save();c.translate(e.x,e.y);c.rotate(aim);
   const crawl=e.crawling?Math.sin(e.crawlPhase||0):0;
-  if(e.legsDisabled){c.scale(1.15,.8);c.rotate(crawl*.07);c.translate(-Math.abs(crawl)*2,0);}
+  if(e.legsDisabled){c.scale(1.25,.75);c.rotate(crawl*.05);c.translate(-Math.abs(crawl)*3,0);}
   c.fillStyle='#080f0966';c.beginPath();c.ellipse(-4,4,22,16,0,0,Math.PI*2);c.fill();
   // Lower body follows actual movement; upper body independently aims.
   c.save();c.rotate(e.walking?(e.walkAngle||0)-aim:0);
@@ -53,13 +53,13 @@ export function drawSoldier(c,e,player,recoil=0){
       c.fillStyle='#c4ad87';c.beginPath();c.arc(handX,handY,2.3,0,Math.PI*2);c.fill();
       continue;
     }
-    const reach=e.crawling?Math.sin((e.crawlPhase||0)+side*Math.PI/2)*6:0;
-    const handX=(e.armsDisabled||e.unarmed?5:side<0?18:11)+reach,handY=e.crawling?side*15:e.armsDisabled||e.unarmed?side*17:side<0?-2:4;
+    const reach=e.crawling?Math.sin((e.crawlPhase||0)+side*Math.PI/2)*9:0;
+    const handX=(e.crawling?20:e.armsDisabled||e.unarmed?5:side<0?18:11)+reach,handY=e.crawling?side*15:e.armsDisabled||e.unarmed?side*17:side<0?-2:4;
     c.beginPath();c.moveTo(-1,side*10);c.lineTo(7,side*13);c.lineTo(handX,handY);c.stroke();
     c.fillStyle='#c4ad87';c.beginPath();c.arc(handX,handY,2.8,0,Math.PI*2);c.fill();
   }
   if(!e.armsDisabled&&!e.unarmed){
-    c.save();c.translate(-recoil*.6,2);
+    c.save();if(e.crawling){c.translate(-15,10);c.rotate(.25);}c.translate(-recoil*.6,2);
     c.fillStyle='#4c4535';c.fillRect(1,-2,9,5);
     c.fillStyle='#252c27';c.fillRect(9,-3,14,5);c.fillRect(13,2,4,5);
     c.fillStyle='#687068';c.fillRect(23,-1,13,2);c.fillRect(31,-3,2,4);
@@ -67,6 +67,18 @@ export function drawSoldier(c,e,player,recoil=0){
   }
   c.restore();
   if(e.restrained)drawWristBinding(c,-13,0);
+  if(e.knifeEquipped){
+    const swing=e.knifeSwing>0?1-e.knifeSwing/.32:0;
+    c.save();c.rotate(e.knifeSwing>0?-1.1+swing*2.2:.3);
+    c.strokeStyle=cloth;c.lineWidth=6;c.lineCap='round';
+    c.beginPath();c.moveTo(-1,8);c.lineTo(12,10);c.lineTo(22,2);c.stroke();
+    c.fillStyle='#c4ad87';c.beginPath();c.arc(22,2,3,0,Math.PI*2);c.fill();
+    c.fillStyle='#30372e';c.fillRect(21,0,9,4);
+    c.fillStyle='#889386';c.fillRect(29,-2,2,8);
+    c.fillStyle='#d5ddd6';c.beginPath();c.moveTo(31,0);c.lineTo(48,1);c.lineTo(39,5);c.lineTo(31,4);c.closePath();c.fill();
+    if(e.knifeSwing>0){c.strokeStyle='#dbe4ce88';c.lineWidth=2;c.beginPath();c.arc(0,0,49,-.45,.15);c.stroke();}
+    c.restore();
+  }
   for(const side of e.missingArms||[]){c.fillStyle='#773d30';c.fillRect(-2,side*9-2,5,4);}
   for(const side of e.missingLegs||[]){c.fillStyle='#773d30';c.fillRect(-8,side*6-2,5,4);}
   // Face edge and helmet, visibly separate from the shoulders.

@@ -11,7 +11,7 @@ test('memory preserves the last observed position without tracking hidden moveme
   let contact=updateContact(e,{x:200,y:270},walls,.1);
   assert.equal(contact.visible,false);assert.equal(contact.target.x,300);assert.equal(contact.target.y,350);
   contact=updateContact(e,{x:250,y:430},walls,.1);assert.equal(contact.target.y,350);
-  assert.equal(updateContact(e,p,walls,CONFIG.suppression.memory+1).target,null);
+  assert.deepEqual(updateContact(e,p,walls,30).target,{x:300,y:350,vx:0,vy:0});
 });
 test('a defender with no prior sighting cannot suppress an unknown hidden player',()=>{
   const e={x:600,y:350};

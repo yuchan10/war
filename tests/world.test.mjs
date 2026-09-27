@@ -21,6 +21,19 @@ const idle= {
     x:0,y:0
   }),consumeDash:()=>false
 };
+test('touching a soldier causes no damage, but a close bullet still hits',()=>{
+  for(const type of ['assault','shooter']){
+    const w=new World(audio);w.start();w.walls=[];w.enemies=[];
+    Object.assign(w.player,{x:300,y:300,invulnerable:0});
+    w.spawnEnemy(type,310,300);
+    Object.assign(w.enemies[0],{born:0,timer:100,speed:0});
+    for(let i=0;i<60;i++)w.update(CONFIG.step,idle);
+    assert.equal(w.player.hp,100,`${type} must not deal contact damage`);
+    w.shoot(310,300,Math.PI,true,22,1000);
+    w.update(CONFIG.step,idle);
+    assert.equal(w.player.hp,78,`${type} close-range bullets still deal damage`);
+  }
+});
 test('swept collision catches a bullet crossing a small target',()=> {
   assert.equal(segmentHits(0,0,100,0,50,0,2),true);assert.equal(segmentHits(0,0,100,0,50,10,2),false);
 });
@@ -62,5 +75,5 @@ test('six fixed stages finish at final exit without upgrades',()=>{
   assert.equal(w.state,'won');
 });
 test('pause does not simulate and reset removes previous run objects',()=> {
-  const w=new World(audio);w.start();w.state='paused';w.update(1,idle);assert.equal(w.time,0);w.spawnEnemy('boss');w.start();assert.equal(w.enemies.length,w.stage.enemies.length);assert.equal(w.wave,1);assert.equal(w.player.hp,100);
+  const w=new World(audio);w.start();w.state='paused';w.update(1,idle);assert.equal(w.time,0);w.spawnEnemy('assault');w.start();assert.equal(w.enemies.length,w.stage.enemies.length);assert.equal(w.wave,1);assert.equal(w.player.hp,100);
 });

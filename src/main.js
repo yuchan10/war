@@ -19,17 +19,17 @@ import {
 }from'./ui.js';
 const canvas=document.querySelector('#game'),audio=new Audio(),world=new World(audio);
 let ui;
-const input=new Input(canvas,()=>ui.pause(),()=>ui.toggleSound());
+const input=new Input(canvas,()=>ui.toggleSettings(),()=>ui.toggleSound());
 let storage;try{storage=localStorage;}catch{}
 const settings=new Settings(storage);
 const renderer=new Renderer(canvas,settings);
 ui=new UI(world,input,audio,settings);
 let last=performance.now(),accumulator=0,uiTime=0;
 document.addEventListener('visibilitychange',()=> {
-  if(document.hidden&&world.state==='playing')ui.pause();
+  if(document.hidden&&world.state==='playing')ui.openSettings();
 });
 window.addEventListener('blur',()=> {
-  if(world.state==='playing')ui.pause();
+  if(world.state==='playing')ui.openSettings();
 });
 function frame(now) {
   const elapsed=Math.min((now-last)/1000,CONFIG.maxFrame);

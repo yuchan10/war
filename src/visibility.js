@@ -4,7 +4,7 @@ import { sweepBox } from './arena.js';
 export const VISION={range:1200,near:0,angle:Math.PI*.94};
 const angularDistance=(a,b)=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)));
 
-export function visiblePoint(player,target,walls,vision=VISION){
+export function visiblePoint(player,target,walls,vision=player.vision??VISION){
   const dx=target.x-player.x,dy=target.y-player.y,distance=Math.hypot(dx,dy);
   const forward=angularDistance(Math.atan2(dy,dx),player.angle)<=vision.angle/2;
   if(distance>(forward?vision.range:vision.near))return false;
@@ -12,7 +12,7 @@ export function visiblePoint(player,target,walls,vision=VISION){
 }
 
 // Raycast the light boundary against the same geometry used by bullets.
-export function visionPolygon(player,walls,vision=VISION){
+export function visionPolygon(player,walls,vision=player.vision??VISION){
   const a=CONFIG.arena;
   const edges=[...walls,{x:a.left-20,y:a.top-20,w:20,h:a.bottom-a.top+40},{x:a.right,y:a.top-20,w:20,h:a.bottom-a.top+40},{x:a.left-20,y:a.top-20,w:a.right-a.left+40,h:20},{x:a.left-20,y:a.bottom,w:a.right-a.left+40,h:20}];
   const angles=[];

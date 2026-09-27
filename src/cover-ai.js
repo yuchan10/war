@@ -1,11 +1,14 @@
-import { hasLineOfSight } from './arena.js';
+import { updateWounded } from './wounded-ai.js';
 import { updateEnemyFire } from './enemy-fire.js';
 import { updateContact } from './contact-memory.js';
 import { suppressionTarget,safeShot } from './suppression-target.js';
 
 // Each defender owns a small hide/peek position. It never pursues the player.
 export function updateCoverDefender(e,dt,player,walls,shoot){
+  const wounded=updateWounded(e,dt,player,walls,shoot);
+  if(wounded)return wounded;
   const contact=updateContact(e,player,walls,dt);
+  if(contact.target)e.angle=Math.atan2(contact.target.y-e.y,contact.target.x-e.x);
   e.suppressing=!contact.visible&&!!contact.target;
   const post=e.cover||(e.cover={hide:{x:e.x,y:e.y},peek:{x:e.x,y:e.y},delay:1});
   if(!e.suppressing)e.suppressionWall=null;
@@ -16,12 +19,6 @@ export function updateCoverDefender(e,dt,player,walls,shoot){
     return true;
   };
   if(!e.coverState){e.coverState='hidden';e.coverWait=post.delay??1;e.exposure=0;}
-  if(e.armsDisabled){
-    e.aimRemaining=0;e.burstLeft=0;e.coverState='retreat';
-    const dx=post.hide.x-e.x,dy=post.hide.y-e.y,d=Math.hypot(dx,dy);
-    const speed=Math.min(e.speed,d/Math.max(dt,.00001));
-    return d>.1?{x:dx/d*speed,y:dy/d*speed}:{x:0,y:0};
-  }
   if(e.flash>0&&e.coverState!=='hidden'){
     e.coverState='retreat';e.aimRemaining=0;e.burstLeft=0;
   }

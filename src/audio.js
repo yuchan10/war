@@ -1,4 +1,5 @@
 import { playGunshot, fetchRifleSamples } from './gunshot-audio.js';
+import { playReload } from './reload-audio.js';
 
 export function spatialSound(dx=0,dy=0){
   const distance=Math.hypot(dx,dy);
@@ -44,9 +45,19 @@ export class Audio {
     const pan=c.createStereoPanner();pan.pan.value=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep')?spatial.pan:0;pan.connect(this.master);
     const shot=type==='shot'||type==='enemyShot';
     const distanceGain=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep')?spatial.gain:1;
+    if(type==='reload'||type==='reloadReady'){
+      playReload(c,this.noise,pan,type==='reloadReady');return;
+    }
     if(shot){
       playGunshot(c,this.rifleBuffers?.[type==='enemyShot'?1:0],pan,{gain:distanceGain,distance:Math.hypot(position.dx||0,position.dy||0)});
       return;
+    }
+    if(type==='knife'){
+      const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();
+      source.buffer=this.noise;filter.type='bandpass';filter.frequency.value=1800;filter.Q.value=.7;
+      gain.gain.setValueAtTime(.001,now);gain.gain.linearRampToValueAtTime(.18,now+.04);gain.gain.exponentialRampToValueAtTime(.001,now+.18);
+      source.connect(filter);filter.connect(gain);gain.connect(pan);source.start();source.stop(now+.2);
+      source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();pan.disconnect();};return;
     }
     const step=type==='footstep'||type==='enemyFootstep';
     if(step){
@@ -57,7 +68,7 @@ export class Audio {
       noise.connect(filter);filter.connect(envelope);envelope.connect(pan);noise.start();noise.stop(now+.2);
       noise.onended=()=>{noise.disconnect();filter.disconnect();envelope.disconnect();};
     }
-    const sounds={heal:[420,720,.16,.04],footstep:[95,40,.09,.065],enemyFootstep:[85,35,.1,.065],enemyShot:[130,38,.24,.16],shot:[180,45,.12,.12],wallHit:[220,60,.05,.025],impact:[180,65,.075,.05],reload:[160,70,.15,.05],reloadReady:[520,900,.1,.025],hit:[90,35,.15,.07],dead:[75,30,.16,.04],wave:[180,220,.2,.018]};
+    const sounds={heal:[420,720,.16,.04],footstep:[95,40,.09,.065],enemyFootstep:[85,35,.1,.065],enemyShot:[130,38,.24,.16],shot:[180,45,.12,.12],wallHit:[220,60,.05,.025],impact:[180,65,.075,.05],hit:[90,35,.15,.07],dead:[75,30,.16,.04],wave:[180,220,.2,.018]};
     const [from,to,duration,volume]=sounds[type]||sounds.impact;
     const oscillator=c.createOscillator(),gain=c.createGain();oscillator.type=shot?'triangle':'sine';
     oscillator.frequency.setValueAtTime(from,now);oscillator.frequency.exponentialRampToValueAtTime(to,now+duration);

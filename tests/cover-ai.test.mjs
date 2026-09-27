@@ -21,9 +21,9 @@ test('defender peeks, fires, retreats and stays near its assigned post',()=>{
   }
   assert.ok(shots>0);assert.ok(states.has('hidden'));assert.ok(states.has('peek'));assert.ok(states.has('retreat'));
 });
-test('player flanking exposes defenders without triggering a pursuit',()=>{
+test('defender retaliates against a flanking player only when facing that side',()=>{
   const stage=STAGES[0],post=stage.enemies[0];const e={...ENEMIES.shooter,...post,timer:0,flash:0};
-  const player={x:post.x+160,y:post.y};let shots=0;
+  e.angle=0;const player={x:post.x+160,y:post.y};let shots=0;
   assert.equal(hasLineOfSight(e,player,stage.walls),true);
   for(let i=0;i<500;i++){e.timer-=.01;const v=updateCoverDefender(e,.01,player,stage.walls,()=>shots++);moveBody(e,v.x*.01,v.y*.01,stage.walls);}
   assert.ok(shots>0);assert.ok(e.x<post.x+5);

@@ -68,7 +68,20 @@ export class Renderer {
     if(s.cameraShake&&w.shake)c.translate(Math.sin(w.time*65)*Math.min(w.shake,2)*.4,Math.cos(w.time*53)*Math.min(w.shake,2)*.4);
     if(this.backgroundStage!==w.stage)this.drawBackground(w.stage);
     c.drawImage(this.background,0,0);
+    w.effects.blood.draw(c,mark=>storyOverview||visiblePoint(p,mark,w.walls));
     for(const wall of w.walls)this.wall(c,wall);
+    if(s.enemyVision){
+      const playerSight=visionPolygon(p,w.walls);
+      c.save();c.beginPath();playerSight.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();c.clip();
+      const observers=w.prologue&&w.prologue.phase!=='revenge'?w.prologue.guards:w.enemies;
+      for(const e of observers){
+        if(e.active===false||e.subdued||e.fallen||!visiblePoint(p,e,w.walls))continue;
+        const sight=visionPolygon(e,w.walls);c.beginPath();
+        sight.forEach((q,i)=>i?c.lineTo(q.x,q.y):c.moveTo(q.x,q.y));c.closePath();
+        c.fillStyle='#dca66516';c.fill();c.strokeStyle='#dca66555';c.lineWidth=1;c.stroke();
+      }
+      c.restore();
+    }
     const ghosts=this.sightMemory.update(w.enemies,w.time,e=>visiblePoint(p,e,w.walls));
     const exit=w.stage.exit;
     if(!w.prologue||w.prologue.phase==='revenge'){
@@ -78,13 +91,13 @@ export class Renderer {
     if(w.exitOpen){c.strokeStyle='#d3d2a6';c.lineWidth=3;c.beginPath();c.moveTo(exit.x-5,exit.y-8);c.lineTo(exit.x+5,exit.y);c.lineTo(exit.x-5,exit.y+8);c.stroke();}
     }
     w.prologue?.draw(c,w);
-    if(!p.unarmed&&s.playerPrediction&&w.state==='playing')this.prediction(c,{x:p.x,y:p.y,vx:Math.cos(p.angle)*1300,vy:Math.sin(p.angle)*1300,radius:C.weapon.radius,active:true},w.walls,'#d4e6c78a');
+    if(!p.unarmed&&s.playerPrediction&&w.state==='playing')this.prediction(c,{x:p.x,y:p.y,vx:Math.cos(p.angle)*1300,vy:Math.sin(p.angle)*1300,radius:C.weapon.radius,remainingRange:C.weapon.bulletRange,active:true},w.walls,'#d4e6c78a');
     for(const e of w.enemies){
       if(!visiblePoint(p,e,w.walls))continue;
       if(s.enemyPrediction&&(e.aimRemaining>0||e.burstLeft>0)){
         for(let i=0;i<(e.burstCount||1);i++){
           const angle=enemyShotAngle(e,i);
-          this.prediction(c,{x:e.x,y:e.y,vx:Math.cos(angle)*1400,vy:Math.sin(angle)*1400,radius:6,active:true},w.walls,'#e8a07a90');
+          this.prediction(c,{x:e.x,y:e.y,vx:Math.cos(angle)*1400,vy:Math.sin(angle)*1400,radius:6,remainingRange:e.bulletRange??C.weapon.bulletRange,active:true},w.walls,'#e8a07a90');
         }
       }
       drawSoldier(c,e,false);

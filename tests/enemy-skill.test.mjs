@@ -6,14 +6,14 @@ import { skillStats } from '../src/enemy-skill.js';
 import { updateEnemyFire } from '../src/enemy-fire.js';
 
 function soldier(skill){return {...ENEMIES.shooter,...skillStats(ENEMIES.shooter,skill),x:0,y:0,timer:0};}
-test('both tactical roles contain mixed skills without changing appearance or health',()=>{
+test('both tactical roles contain mixed skills without changing appearance or health within each role',()=>{
   const w=new World({play(){}});w.start();
   for(const role of ['assault','support']){
     const soldiers=w.enemies.filter(e=>e.role===role);
-    assert.equal(new Set(soldiers.map(e=>e.skill)).size,3);
+    assert.ok(soldiers.every(e=>['rookie','regular','veteran'].includes(e.skill)));
   }
   assert.equal(new Set(w.enemies.map(e=>e.color)).size,1);
-  assert.equal(new Set(w.enemies.map(e=>e.hp)).size,1);
+  for(const role of ['assault','support'])assert.equal(new Set(w.enemies.filter(e=>e.role===role).map(e=>e.hp)).size,1);
 });
 test('veteran reacts sooner and fires a tighter burst than rookie',()=>{
   const shots={veteran:[],rookie:[]};

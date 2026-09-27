@@ -1,13 +1,16 @@
 import { Pool } from './core.js';
+import { BloodTrails } from './blood-trails.js';
 import { drawHood, drawWristBinding } from './captive-appearance.js';
 import { moveBody } from './arena.js';
 
 // Bounded cosmetic effects never change combat timing or damage.
 export class Effects {
-  constructor() { this.items = new Pool(120); this.hitMarker = 0; }
-  clear() { this.items.clear(); this.hitMarker = 0; }
+  constructor() { this.items = new Pool(120); this.hitMarker = 0; this.blood=new BloodTrails(); }
+  clear() { this.items.clear(); this.items=new Pool(120); this.hitMarker = 0; this.blood.clear(); }
+  persist(data){this.items.limit++;return this.items.spawn({...data,persistent:true,age:0});}
+  snapshot(){return structuredClone({remains:this.items.items.filter(e=>e.active&&e.persistent),blood:this.blood.marks});}
   add(kind, x, y, angle, color, life, size) {
-    this.items.spawn({ kind, x, y, angle, color, life, duration: life, size });
+    this.items.spawn({ persistent:false,kind, x, y, angle, color, life, duration: life, size });
   }
   fire(player, boosted) {
     const { x, y, angle } = player;
@@ -15,13 +18,18 @@ export class Effects {
       angle, '#fff0ad', .04, 16);
     this.add('casing', x, y, angle + Math.PI / 2, '#dabb76', .65, 5);
   }
-  impact(x,y,angle=0) {
-    this.hitMarker=.16;
+  impact(x,y,angle=0,walls=[],showHitMarker=true) {
+    this.blood.splatter(x,y,angle,walls);
+    if(showHitMarker)this.hitMarker=.16;
     for(let i=0;i<9;i++)this.add('blood',x,y,angle+(i-4)*.19,'#984a3b',.42,3+i%3);
     this.add('dust',x,y,angle,'#b2a68d',.32,19);
   }
+  hoodImpact(x,y,angle=0,walls=[]){
+    this.blood.add(x,y,3,angle,walls);
+    for(let i=0;i<3;i++)this.add('blood',x,y,angle+(i-1)*.3,'#793d34',.18,1.2+i*.2);
+  }
   fallen(soldier,fallAngle=null) {
-    this.items.spawn({kind:'body',x:soldier.x,y:soldier.y,angle:fallAngle??soldier.angle+1.1,directedFall:fallAngle!==null,color:soldier.allied?'#7e8e63':'#897451',life:24,duration:24,size:1,
+    this.persist({kind:'body',x:soldier.x,y:soldier.y,angle:fallAngle??soldier.angle+1.1,directedFall:fallAngle!==null,color:soldier.allied?'#7e8e63':'#897451',life:24,duration:24,size:1,
       torsoMarks:(soldier.torsoMarks||[]).map(mark=>({...mark})),
       restrained:!!soldier.restrained,hooded:!!soldier.hooded,
       missingArm:soldier.missingArm||0,missingLeg:soldier.missingLeg||0,missingArms:[...(soldier.missingArms||[])],missingLegs:[...(soldier.missingLegs||[])],headDestroyed:!!soldier.headDestroyed,unarmed:!!soldier.armsDisabled});
@@ -30,17 +38,21 @@ export class Effects {
     const side=part==='arm'?soldier.missingArm:soldier.missingLeg;
     const aim=soldier.aimAngle??soldier.angle;
     const a=aim+side*Math.PI/2;
-    const spawn=(kind,offset,speed,angle)=>this.items.spawn({kind,x:soldier.x+Math.cos(a)*offset,y:soldier.y+Math.sin(a)*offset,
+    const spawn=(kind,offset,speed,angle)=>this.persist({kind,x:soldier.x+Math.cos(a)*offset,y:soldier.y+Math.sin(a)*offset,
       angle,color:'#ad936a',life:24,duration:24,size:1,radius:3,
       vx:Math.cos(impactAngle)*speed+Math.cos(a)*55,vy:Math.sin(impactAngle)*speed+Math.sin(a)*55,spin:side*7});
     spawn(part==='arm'?'droppedArm':'droppedLeg',10,100,aim+side*.7);
     if(part==='arm'&&soldier.armsDisabled&&!soldier.rifleDropped){spawn('droppedRifle',16,145,aim);soldier.rifleDropped=true;}
   }
+  detachHead(soldier,angle){
+    this.persist({kind:'droppedHead',x:soldier.x,y:soldier.y,angle,color:'#c1aa7c',life:24,duration:24,size:1,radius:6,
+      vx:Math.cos(angle)*130,vy:Math.sin(angle)*130,spin:5});
+  }
   update(dt,walls=[]) {
     this.hitMarker = Math.max(0, this.hitMarker - dt);
     for (const e of this.items.items) {
       if (!e.active) continue;
-      e.life -= dt;
+      if(e.persistent)e.age+=dt;else e.life-=dt;
       if(e.kind.startsWith('dropped')){
         const decay=Math.exp(-7*dt),travel=(1-decay)/7;
         moveBody(e,e.vx*travel,e.vy*travel,walls);e.angle+=e.spin*travel;
@@ -61,9 +73,9 @@ export class Effects {
     c.save();
     for (const e of this.items.items) {
       if (!e.active || !isVisible(e)) continue;
-      const progress = 1 - e.life / e.duration;
+      const progress=e.persistent?Math.min(1,e.age/e.duration):1-e.life/e.duration;
       c.save(); c.translate(e.x, e.y); c.rotate(e.angle);
-      c.globalAlpha = 1 - progress;
+      c.globalAlpha=e.persistent?1:1-progress;
       c.fillStyle = e.color; c.strokeStyle = e.color;
       if(e.kind==='body'){
         const fall=Math.min(1,progress*70);
@@ -94,7 +106,11 @@ export class Effects {
         }
       }else if(e.kind.startsWith('dropped')){
         c.globalAlpha=Math.min(1,e.life/2);
-        if(e.kind==='droppedRifle'){
+        if(e.kind==='droppedHead'){
+          c.fillStyle='#bfa580';c.beginPath();c.arc(2,0,5,0,Math.PI*2);c.fill();
+          c.fillStyle=e.color;c.beginPath();c.ellipse(0,-1,7,6,0,0,Math.PI*2);c.fill();
+          c.strokeStyle='#6b573b';c.lineWidth=2;c.beginPath();c.arc(0,-1,5,-2.8,.8);c.stroke();
+        }else if(e.kind==='droppedRifle'){
           c.fillStyle='#4c4535';c.fillRect(-17,-3,10,6);c.fillStyle='#252c27';c.fillRect(-7,-3,15,5);c.fillRect(-3,2,4,6);
           c.fillStyle='#899084';c.fillRect(8,-1,14,2);c.fillRect(18,-3,2,4);
         }else{
