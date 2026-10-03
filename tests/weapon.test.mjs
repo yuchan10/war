@@ -28,12 +28,12 @@ test('empty magazine auto reloads, pause freezes it, restart resets it', () => {
   assert.equal(w.weapon.ammo,0);assert.equal(w.weapon.reloading,true);
   const remaining=w.weapon.reloadRemaining;
   w.state='paused';w.update(1,input);assert.equal(w.weapon.reloadRemaining,remaining);
-  w.start();assert.equal(w.weapon.ammo,12);assert.equal(w.weapon.reloading,false);
+  w.start();assert.equal(w.weapon.ammo,24);assert.equal(w.weapon.reloading,false);
 });
 test('manual reload blocks firing without consuming another round', () => {
   const w=new World({play(){}});w.start();w.weapon.consume();
   const input={mouse:{x:900,y:360,down:true},movement:()=>({x:0,y:0}),consumeDash:()=>false,consumeReload:()=>true};
   w.update(CONFIG.step,input);
-  assert.equal(w.weapon.reloading,true);assert.equal(w.weapon.ammo,11);
+  assert.equal(w.weapon.reloading,true);assert.equal(w.weapon.ammo,23);
 assert.equal(w.bullets.items.length,0);
 });

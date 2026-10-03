@@ -40,9 +40,9 @@ test('normal combat knife damages armor without shooting and rifle still fires a
   w.update(.01,swap);
   const attack={...idle,mouse:{...idle.mouse,down:true}};
   for(let i=0;i<20;i++)w.update(.01,attack);
-  assert.equal(w.kills,0);assert.equal(w.weapon.ammo,12);assert.equal(w.enemies[0].body.torso.armor,30);
+  assert.equal(w.kills,0);assert.equal(w.weapon.ammo,24);assert.equal(w.enemies[0].body.torso.armor,30);
   assert.equal(w.effects.items.items.filter(e=>e.kind==='droppedHead').length,0);
-  w.update(.01,swap);w.update(.01,attack);assert.equal(w.weapon.ammo,11);
+  w.update(.01,swap);w.update(.01,attack);assert.equal(w.weapon.ammo,23);
 });
 
 test('prologue cannot equip a rifle before acquisition; stage transitions preserve selected knife',()=>{

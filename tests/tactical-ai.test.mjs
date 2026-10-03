@@ -9,7 +9,7 @@ import {moveBody} from '../src/arena.js';
 import {concealed} from '../src/cover-retreat.js';
 import {updateEnemyReload} from '../src/enemy-fire.js';
 import {hearSound} from '../src/hearing.js';
-const soldier=(role='assault',extra={})=>{const e={...ENEMIES[role],x:600,y:350,angle:Math.PI,ammo:12,timer:0,active:true,born:0,courage:'steady',skill:'regular',...extra};initBody(e);return e;};
+const soldier=(role='assault',extra={})=>{const e={...ENEMIES[role],x:600,y:350,angle:Math.PI,ammo:24,timer:0,active:true,born:0,courage:'steady',skill:'regular',...extra};initBody(e);return e;};
 function tick(es,p,walls,dt=.05,shoot=()=>{}){prepareSquad(es,p,walls,dt);for(const e of es){if(e.dead)continue;e.timer-=dt;updateEnemyReload(e,dt);const v=updateTacticalEnemy(e,dt,walls,es,shoot,()=>.5);moveBody(e,v.x*dt,v.y*dt,walls);}}
 test('reports are delayed snapshots, limited by distance and never relay hidden live movement',()=>{
  const a=soldier(),b=soldier('shooter',{x:650,angle:0}),far=soldier('shooter',{x:1100,angle:0}),p={x:300,y:350};
@@ -56,7 +56,7 @@ test('visible teammate death affects morale but deaths behind walls do not',()=>
 test('visible target triggers reaction before fire, repeated reloads work in actual tactical loop',()=>{
  const e=soldier('shooter',{aimDuration:.1,fireInterval:.1}),p={x:300,y:350};let shots=0;
  tick([e],p,[],.05,()=>shots++);assert.equal(e.aiState,'react');assert.equal(shots,0);
- for(let i=0;i<600;i++)tick([e],p,[],.05,()=>shots++);assert.ok(shots>12);assert.ok(e.ammo>=0&&e.ammo<=12);
+ for(let i=0;i<600;i++)tick([e],p,[],.05,()=>shots++);assert.ok(shots>24);assert.ok(e.ammo>=0&&e.ammo<=24);
 });
 test('tactical firing is withheld when a teammate blocks the line of fire',()=>{
  const e=soldier('shooter'),friend=soldier('assault',{x:450}),p={x:300,y:350};e.contact={visible:true,target:p,source:'sight',age:0};e.hadVisual=true;

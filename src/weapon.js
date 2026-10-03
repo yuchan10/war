@@ -5,7 +5,7 @@ export class Weapon {
   constructor(config = CONFIG.weapon) {
     this.capacity = config.magazineSize;
     this.ammo = this.capacity;
-    this.reserveCapacity=config.reserveCapacity??60;this.reserve=this.reserveCapacity;
+    this.reserveCapacity=config.reserveCapacity??CONFIG.weapon.reserveCapacity;this.reserve=this.reserveCapacity;
     this.reloadDuration = config.reloadDuration;
     this.reloadRemaining = 0;
   }

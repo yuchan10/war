@@ -4,7 +4,7 @@ export const CONFIG= {
   },player: {
     radius:15,speed:126,accuracy:100,knifeMoveScale:1.25,firingMoveScale:.65,reloadMoveScale:.55
   },weapon: {
-    bulletRange:526,interval:.144,speed:1783,damage:45,radius:4,life:2.4,magazineSize:12,reserveCapacity:60,reloadDuration:1.6
+    bulletRange:526,interval:.144,speed:1783,damage:45,radius:4,life:2.4,magazineSize:24,reserveCapacity:72,reloadDuration:1.6
   },knockback: { enemy:180,player:100,knife:70,drag:10,maxSpeed:1000 }
 };
 export const ENEMIES= {

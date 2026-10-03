@@ -45,8 +45,8 @@ test('finishing an exposed wounded searcher with a knife starts normal combat',(
  advance(w,.15,attack);assert.equal(w.prologue.phase,'arming');
  assert.equal(guard.dead,true);assert.ok(!guard.headDestroyed);assert.equal(w.kills,1);
  advance(w,.71);assert.equal(w.prologue.phase,'revenge');assert.equal(w.player.unarmed,false);
- assert.equal(w.enemies.length,2);assert.equal(w.kills,1);assert.equal(w.weapon.ammo,12);assert.equal(w.weapon.reserve,60);
- advance(w,.02,{...idle,consumeReload:()=>false,mouse:{x:650,y:330,down:true}});assert.equal(w.weapon.ammo,11);
+ assert.equal(w.enemies.length,2);assert.equal(w.kills,1);assert.equal(w.weapon.ammo,24);assert.equal(w.weapon.reserve,72);
+ advance(w,.02,{...idle,consumeReload:()=>false,mouse:{x:650,y:330,down:true}});assert.equal(w.weapon.ammo,23);
  for(const e of w.enemies)e.active=false;
  Object.assign(w.player,PROLOGUE_STAGE.exit);advance(w,2);
  assert.equal(w.prologue,null);assert.equal(w.wave,1);assert.equal(w.enemies.length,6);

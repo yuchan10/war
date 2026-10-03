@@ -67,7 +67,7 @@ test('stage waits for exit and all enemies before advancing',()=> {
   const damage=w.player.damage;w.player.bloodLoss=50;w.weapon.consume();
   Object.assign(w.player,w.stage.exit);w.update(CONFIG.step,idle);
   assert.equal(w.wave,2);assert.equal(w.player.damage,damage);
-  assert.equal(w.player.bloodLoss,50);assert.equal(w.weapon.ammo,11);
+  assert.equal(w.player.bloodLoss,50);assert.equal(w.weapon.ammo,23);
 });
 test('six fixed stages finish at final exit without upgrades',()=>{
   const w=new World(audio);w.start();
