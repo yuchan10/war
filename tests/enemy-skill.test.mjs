@@ -18,11 +18,11 @@ test('both tactical roles contain mixed skills without changing appearance or he
 test('veteran reacts sooner and fires a tighter burst than rookie',()=>{
   const shots={veteran:[],rookie:[]};
   for(const skill of Object.keys(shots)){
-    const e=soldier(skill),target={x:400,y:0},fire=(x,y,a)=>shots[skill].push(a);
-    updateEnemyFire(e,.01,target,fire);
-    updateEnemyFire(e,.18,target,fire);
+    const e=soldier(skill),target={x:400,y:0},fire=(x,y,a)=>shots[skill].push(a);let sample=0;const random=()=>[0,1,.5][sample++%3];
+    updateEnemyFire(e,.01,target,fire,true,random);
+    updateEnemyFire(e,.18,target,fire,true,random);
     assert.equal(shots[skill].length,skill==='veteran'?1:0);
-    for(let i=0;i<80;i++)updateEnemyFire(e,.01,target,fire);
+    for(let i=0;i<80;i++)updateEnemyFire(e,.01,target,fire,true,random);
     assert.equal(shots[skill].length,3);
   }
   const width=a=>Math.max(...a)-Math.min(...a);

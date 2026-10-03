@@ -5,7 +5,7 @@ import { STAGES } from '../src/stages.js';
 import { ENEMIES } from '../src/config.js';
 import { updateWounded } from '../src/wounded-ai.js';
 
-const soldier=courage=>({...ENEMIES.assault,courage,maxHp:120,hp:119,x:500,y:350,angle:0,timer:0});
+const soldier=courage=>({...ENEMIES.assault,courage,wasHit:true,x:500,y:350,angle:0,timer:0});
 test('stages progressively add resolute soldiers and spawning preserves courage',()=>{
   STAGES.forEach((stage,index)=>assert.equal(stage.enemies.filter(e=>e.courage==='resolute').length,index+1));
   const w=new World({play(){}});w.start();
@@ -23,8 +23,8 @@ test('a small wound makes cautious enemies seek cover while other profiles can r
   }
 });
 
-test('resolute wounded soldiers hold at one HP and suppress memory, and do not flee solely because they lose their gun',()=>{
-  const e={...soldier('resolute'),hp:1,lastContact:{x:650,y:350}},player={x:350,y:350};
+test('resolute wounded soldiers hold with severe blood loss and suppress memory, and do not flee solely because they lose their gun',()=>{
+  const e={...soldier('resolute'),bloodLoss:90,lastContact:{x:650,y:350}},player={x:350,y:350};
   let shots=0;
   updateWounded(e,.01,player,[],()=>shots++);
   updateWounded(e,.4,player,[],()=>shots++);

@@ -1,35 +1,49 @@
-import { moveBody, hasLineOfSight } from './arena.js';
-import { CONFIG } from './config.js';
-
+import { hasLineOfSight } from './arena.js';
+import { initBody, PARTS } from './injury.js';
+export const ARMOR_CHANGE_SECONDS=2.5;
 export class Pickups {
-  constructor(){this.items=[];}
-  clear(){this.items=[];}
-  drop(soldier,walls,random=Math.random){
-    if(random()>=CONFIG.healing.dropChance)return;
-    const item={x:soldier.x,y:soldier.y,radius:7};
-    const angle=(soldier.angle||0)+Math.PI/2;
-    moveBody(item,Math.cos(angle)*22,Math.sin(angle)*22,walls);
-    this.items.push(item);
-  }
-  collect(player,walls){
-    if(player.hp<=0||player.hp>=player.maxHp)return 0;
-    let healed=0;
-    this.items=this.items.filter(item=>{
-      if(player.hp>=player.maxHp||Math.hypot(player.x-item.x,player.y-item.y)>CONFIG.healing.pickupRadius||!hasLineOfSight(player,item,walls))return true;
-      const amount=Math.min(CONFIG.healing.amount,player.maxHp-player.hp);
-      player.hp+=amount;healed+=amount;return false;
-    });
-    return healed;
-  }
-  draw(c,isVisible){
-    for(const item of this.items){
-      if(!isVisible(item))continue;
-      c.save();c.translate(item.x,item.y);
-      c.fillStyle='#0a140e88';c.fillRect(-9,-6,20,16);
-      c.fillStyle='#7c9270';c.fillRect(-9,-9,18,15);
-      c.strokeStyle='#c3d2a8';c.lineWidth=1;c.strokeRect(-9,-9,18,15);
-      c.fillStyle='#e5ecd5';c.fillRect(-2,-7,4,11);c.fillRect(-6,-3,12,3);
-      c.restore();
-    }
-  }
+ constructor(){this.clear();}
+ clear(){this.items=[];this.changing=null;}
+ drop(soldier,walls=[],random=Math.random,corpse=null){
+  initBody(soldier);const armor=Object.fromEntries(Object.entries(soldier.body).filter(([,s])=>s.armor>0&&!s.severed).map(([k,s])=>[k,{armor:s.armor,maxArmor:s.maxArmor}]));
+  const ammo=Math.max(0,soldier.ammo??0);
+  if(Object.keys(armor).length||ammo)this.items.push({x:soldier.x,y:soldier.y,armor,ammo,corpse});
+ }
+ nearby(p,walls){return this.items.filter(i=>Math.hypot(p.x-i.x,p.y-i.y)<=24&&hasLineOfSight(p,i,walls)).sort((a,b)=>Math.hypot(p.x-a.x,p.y-a.y)-Math.hypot(p.x-b.x,p.y-b.y));}
+ nextPart(p,item){return Object.keys(PARTS).find(k=>item.armor[k]&&!p.body[k].severed&&item.armor[k].armor>p.body[k].armor);}
+ start(p,walls){
+  initBody(p);if(p.dead||this.changing)return false;
+  const item=this.nearby(p,walls).find(i=>this.nextPart(p,i));if(!item)return false;
+  this.changing={item,x:p.x,y:p.y,elapsed:0,key:null};this.beginPart(p);return true;
+ }
+ beginPart(p){
+  const job=this.changing,key=this.nextPart(p,job.item);
+  if(!key){this.changing=null;return;}
+  job.key=key;job.elapsed=0;const slot=p.body[key];
+  // Removed armor remains on the ground if the player interrupts changing.
+  if(slot.armor>0)this.items.push({x:job.item.x,y:job.item.y,armor:{[key]:{armor:slot.armor,maxArmor:slot.maxArmor}},corpse:null});
+  slot.armor=0;
+ }
+ update(p,walls,dt,interrupted=false){
+  const job=this.changing;if(!job)return 0;
+  if(p.dead||p.body[job.key].severed||interrupted||Math.hypot(p.x-job.x,p.y-job.y)>.5||!hasLineOfSight(p,job.item,walls)){this.changing=null;return 0;}
+  job.elapsed+=dt;if(job.elapsed<ARMOR_CHANGE_SECONDS)return 0;
+  const armor=job.item.armor[job.key],slot=p.body[job.key];
+  slot.armor=armor.armor;slot.maxArmor=armor.maxArmor;slot.burst=0;slot.lastArmorHit=-Infinity;
+  delete job.item.armor[job.key];if(job.item.corpse?.armor)job.item.corpse.armor[job.key]=0;
+  this.beginPart(p);this.items=this.items.filter(i=>Object.keys(i.armor).length||i.ammo>0);return 1;
+ }
+ collectAmmo(p,walls,weapon){
+  if(p.dead)return 0;let count=0;
+  for(const item of this.nearby(p,walls)){const taken=weapon.collectAmmo(item.ammo??0);item.ammo=(item.ammo??0)-taken;count+=taken;}
+  this.items=this.items.filter(i=>Object.keys(i.armor).length||i.ammo>0);return count;
+ }
+ available(p,walls,weapon){return !p.dead&&this.nearby(p,walls).some(i=>this.nextPart(p,i)||(i.ammo>0&&weapon&&weapon.reserve<weapon.reserveCapacity));}
+ drawProgress(c,p){
+  const job=this.changing;if(!job||p.dead)return;
+  c.save();c.lineWidth=3;c.strokeStyle='#252b25';c.beginPath();c.arc(p.x,p.y,32,0,Math.PI*2);c.stroke();
+  c.strokeStyle='#d9ddb1';c.beginPath();c.arc(p.x,p.y,32,-Math.PI/2,-Math.PI/2+Math.min(1,job.elapsed/ARMOR_CHANGE_SECONDS)*Math.PI*2);c.stroke();
+  c.fillStyle='#eee9d3';c.font='12px sans-serif';c.textAlign='center';c.fillText(`${PARTS[job.key].label} 방어구 착용 중`,p.x,p.y-42);c.restore();
+ }
+ draw(c,isVisible,p,weapon,time=0){for(const i of this.items){const better=this.nextPart(p,i),ammo=i.ammo>0&&weapon.reserve<weapon.reserveCapacity;if(!isVisible(i)||(!better&&!ammo))continue;c.save();c.translate(i.x,i.y);c.strokeStyle=better?'#b8ee81':'#e7c573';c.shadowColor=c.strokeStyle;c.shadowBlur=7+3*Math.sin(time*4);c.globalAlpha=.75+.25*Math.sin(time*4);c.lineWidth=2;c.strokeRect(-7,19,14,8);c.restore();}}
 }

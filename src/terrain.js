@@ -33,8 +33,6 @@ export function drawTerrain(c,stage){
   for(let i=0;i<13000;i++){c.fillStyle=random()>.5?'#e2dab00c':'#1118101a';c.fillRect(random()*1200,random()*720,1+random()*3,1+random()*2);}
   for(const [x,y,r] of t.craters||[]){const g=c.createRadialGradient(x,y,3,x,y,r);g.addColorStop(0,'#111a14');g.addColorStop(.65,'#282d23');g.addColorStop(1,'#171c1800');c.fillStyle=g;c.beginPath();c.arc(x,y,r,0,Math.PI*2);c.fill();}
   for(let i=0;i<110;i++){const x=60+random()*1080,y=80+random()*555;c.fillStyle=i%2?'#79766360':'#202c2360';c.fillRect(x,y,2+random()*5,2+random()*3);}
-  c.fillStyle='#242b24';c.fillRect(25,45,1150,15);c.fillRect(25,660,1150,15);c.fillRect(25,60,15,600);c.fillRect(1160,60,15,600);
-  c.strokeStyle='#8c8a6e55';c.lineWidth=1;c.strokeRect(40,60,1120,600);
 }
 
 // Solid landmarks use exactly the same rectangular footprint as physics/vision.

@@ -5,6 +5,7 @@ export class Weapon {
   constructor(config = CONFIG.weapon) {
     this.capacity = config.magazineSize;
     this.ammo = this.capacity;
+    this.reserveCapacity=config.reserveCapacity??60;this.reserve=this.reserveCapacity;
     this.reloadDuration = config.reloadDuration;
     this.reloadRemaining = 0;
   }
@@ -12,7 +13,7 @@ export class Weapon {
   get reloading() { return this.reloadRemaining > 0; }
 
   reload() {
-    if (this.reloading || this.ammo === this.capacity) return false;
+    if (this.reloading || this.ammo === this.capacity || this.reserve<=0) return false;
     this.reloadRemaining = this.reloadDuration;
     return true;
   }
@@ -21,8 +22,13 @@ export class Weapon {
     if (!this.reloading) return false;
     this.reloadRemaining = Math.max(0, this.reloadRemaining - dt);
     if (this.reloading) return false;
-    this.ammo = this.capacity;
+    const loaded=Math.min(this.capacity-this.ammo,this.reserve);
+    this.ammo+=loaded;this.reserve-=loaded;
     return true;
+  }
+
+  collectAmmo(amount) {
+    const taken=Math.max(0,Math.min(amount,this.reserveCapacity-this.reserve));this.reserve+=taken;return taken;
   }
 
   consume() {

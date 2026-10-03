@@ -24,3 +24,9 @@ test('light polygon stops at the face of cover',()=>{
   assert.ok(forward);assert.ok(Math.abs(forward.x-500)<1e-6);
   assert.ok(points.every(q=>Number.isFinite(q.x)&&Number.isFinite(q.y)));
 });
+
+test('vision reaches screen edges instead of stopping at the inset movement boundary',()=>{
+ const points=visionPolygon({x:600,y:350,angle:0},[]);
+ const forward=points.find(q=>Math.abs(q.y-350)<1e-6&&q.x>600);
+ assert.ok(forward);assert.ok(Math.abs(forward.x-1200)<1e-6);
+});

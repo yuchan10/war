@@ -1,13 +1,15 @@
+import { prepareSquad,registerNearMiss,notifyCasualty } from './squad-ai.js';
+import { updateTacticalEnemy } from './tactical-ai.js';
+import { updateEnemyReload } from './enemy-fire.js';
+import { shotAngle } from './accuracy.js';
 import { hearSound } from './hearing.js';
-import { knifeTargets, updateKnife } from './knife.js';
-import { updateAssault } from './assault-ai.js';
+import { knifeTargets, updateKnife, knifeContact, KNIFE_DAMAGE } from './knife.js';
 import { playerMoveSpeed } from './player-movement.js';
 import { Prologue, PROLOGUE_STAGE } from './prologue.js';
 import { Pickups } from './pickups.js';
-import { applyInjury, injuryMoveScale } from './injury.js';
+import { applyInjury, injuryMoveScale, initBody, bodyHit, tickWounds } from './injury.js';
 import { skillStats } from './enemy-skill.js';
 import { updateFootsteps } from './footsteps.js';
-import { updateCoverDefender } from './cover-ai.js';
 import { animateStride } from './soldier.js';
 import { STAGES } from './stages.js';
 import { Feedback } from './feedback.js';
@@ -44,8 +46,9 @@ export class World {
     this.effects.clear();
     this.pickups.clear();
     this.player= {
-      hasRifle:true,knifeEquipped:false,unarmed:false,x:600,y:360,radius:C.player.radius,hp:C.player.hp,maxHp:C.player.hp,angle:0,invulnerable:0,shotTimer:0,fireInterval:C.weapon.interval,damage:C.weapon.damage
+      hasRifle:true,knifeEquipped:false,unarmed:false,x:600,y:360,radius:C.player.radius,speed:C.player.speed,accuracy:C.player.accuracy,allied:true,angle:0,shotTimer:0,fireInterval:C.weapon.interval,damage:C.weapon.damage
     };
+    initBody(this.player);
     this.enemies=[];
     this.bullets.clear();
     this.particles.clear();
@@ -62,9 +65,24 @@ export class World {
     this.reset();
     this.nextStage();
   }
+  skipPrologue(){
+    if(this.state!=='playing'||this.prologue?.phase!=='witness')return false;
+    this.startPrologue();
+    const intro=this.prologue;
+    intro.phase='search';intro.elapsed=14;intro.phaseTime=0;intro.shots=3;
+    intro.officer.departed=true;intro.officer.x=1240;
+    for(const [i,ally] of intro.allies.entries()){
+      ally.alive=false;ally.headDestroyed=true;
+      this.effects.fallen({...ally,allied:true,armsDisabled:true},Math.PI/2);
+      this.effects.blood.add(ally.x,ally.y,3,Math.PI/2,this.walls);
+      const guard=intro.guards[i];guard.ammo--;guard.y=260;guard.angle=Math.atan2(ally.y-guard.y,ally.x-guard.x);
+    }
+    return true;
+  }
   startPrologue(){
     this.reset();this.prologue=new Prologue();this.stage=PROLOGUE_STAGE;this.walls=this.stage.walls;
     Object.assign(this.player,this.stage.spawn,{hasRifle:false,unarmed:true,knifeEquipped:true,knifeSwing:0,kneeling:false,angle:-.2});
+    this.weapon.ammo=0;this.weapon.reserve=0;
     this.state='playing';
   }
   archiveBattlefield(){
@@ -76,20 +94,21 @@ export class World {
     if(this.wave>0||this.prologue)this.archiveBattlefield();
     this.prologue=null;
     this.wave++;
-    this.stage=STAGES[this.wave-1];
+    this.stage=STAGES[this.wave-1];this.stageStartedAt=this.time;
     this.walls=this.stage.walls;
     this.exitOpen=false;
     this.enemies=[];
     this.bullets.clear();this.particles.clear();this.effects.clear();this.feedback.reset();
     this.pickups.clear();
-    Object.assign(this.player,this.stage.spawn,{knockX:0,knockY:0,shotTimer:0,invulnerable:.8});
-    this.weapon.ammo=this.weapon.capacity;this.weapon.reloadRemaining=0;
+    Object.assign(this.player,this.stage.spawn,{knockX:0,knockY:0,shotTimer:0});
+    this.weapon.reloadRemaining=0;
     for(const enemy of this.stage.enemies)this.spawnEnemy(enemy.type,enemy.x,enemy.y,enemy.cover,enemy.advancePoint,enemy.skill,enemy.courage);
     this.clearTimer=0;this.state='playing';this.audio.play('wave');
   }
   spawnEnemy(type,x=900,y=360,cover=null,advancePoint=null,skill=null,courage='steady') {
     const d=ENEMIES[type];
-    this.enemies.push({...d,...skillStats(d,skill),type,x,y,cover,advancePoint,courage,maxHp:d.hp,active:true,born:.6,timer:.6+this.enemies.length*.16,flash:0,angle:Math.PI,aimRemaining:0});
+    this.enemies.push({...d,...skillStats(d,skill),type,x,y,cover,advancePoint,courage,ammo:C.weapon.magazineSize,active:true,born:.6,timer:.6+this.enemies.length*.16,flash:0,angle:Math.atan2(this.player.y-y,this.player.x-x),aimRemaining:0});
+    initBody(this.enemies.at(-1));
   }
   burst(x,y,color,n=12) {
     for(let i=0;i<n;i++) {
@@ -101,29 +120,51 @@ export class World {
   }
   emitPlayerSound(type,x=this.player.x,y=this.player.y){
     const listeners=this.prologue&&this.prologue.phase!=='revenge'?this.prologue.guards:this.enemies;
-    hearSound(listeners,{x,y},type,this.walls);
+    hearSound(listeners,{x,y},type,this.walls,this.random);
   }
   shoot(x,y,angle,hostile,damage,speed,empowered=false,bulletRange=C.weapon.bulletRange) {
     if(!hostile)this.emitPlayerSound('gunshot',x,y);
     if(hostile)this.audio.play('enemyShot',{dx:x-this.player.x,dy:y-this.player.y});
     this.bullets.spawn( {
-      x,y,px:x,py:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:empowered?8:hostile?6:4,hostile,damage,life:hostile?5:C.weapon.life,empowered,remainingRange:bulletRange
+      x,y,px:x,py:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:empowered?8:hostile?6:4,hostile,damage,life:hostile?5:C.weapon.life,empowered,remainingRange:bulletRange,alertedEnemies:new Set()
     });
   }
-  hurt(damage, bullet=null) {
-    const p=this.player;
-    if(p.invulnerable>0)return;
-    p.hp=Math.max(0,p.hp-damage);
-    this.feedback.damaged();
-    if(bullet)applyKnockback(p,bullet.vx,bullet.vy,C.knockback.player);
-    p.invulnerable=C.player.invulnerability;
-    this.shake=9;
-    this.audio.play('hit');
-    this.effects.impact(p.x,p.y,bullet?Math.atan2(bullet.vy,bullet.vx):p.angle,this.walls);
-    if(p.hp===0) {
-      this.state='dead';
-      this.audio.play('dead');
+  strikeKnife(target){
+    const p=this.player,hit=knifeContact(p,target);if(!hit)return null;
+    const result=applyInjury(target,KNIFE_DAMAGE,hit,this.time,this.random);
+    this.woundEffect(target,result,{vx:Math.cos(p.angle),vy:Math.sin(p.angle)},hit);
+    if(result.armorHit||result.damage>0)applyKnockback(target,target.x-p.x,target.y-p.y,C.knockback.knife);
+    return result;
+  }
+  killEnemy(e){
+    if(e.deathHandled)return;notifyCasualty(e,this.enemies,this.walls);e.dead=true;e.active=false;e.deathHandled=true;
+    this.kills++;this.score+=e.score??180;this.feedback.killed(this.time);
+    const corpse=this.effects.fallen(e);this.pickups.drop(e,this.walls,this.random,corpse);this.audio.play('dead');
+  }
+  woundEffect(e,result,bullet,hit){
+    const angle=Math.atan2(bullet?.vy||0,bullet?.vx||1),x=hit?.x??e.x,y=hit?.y??e.y;
+    if(result.armorHit){this.effects.armorImpact(x,y,angle,result.armorBroken,result.part,result.weapon==='knife');this.audio.play(result.weapon==='knife'?'knifeArmor':'wallHit');}
+    else if(result.damage>0){
+      if(result.weapon==='knife')this.effects.knifeImpact(x,y,angle,this.walls);
+      else this.effects.impact(x,y,angle,this.walls,e!==this.player);
+      if(result.detached){if(result.part==='head')this.effects.detachHead(e,angle);else this.effects.detach(e,result.kind,angle);}
+      this.audio.play(result.weapon==='knife'?'knifeHit':'impact');
     }
+  }
+  hurt(damage,bullet=null,hit=null){
+    const p=this.player;if(p.dead)return;
+    const injury=applyInjury(p,damage,hit||{region:'center'},this.time,this.random);
+    this.feedback.damaged();p.hitFlash=.15;
+    if(bullet)applyKnockback(p,bullet.vx,bullet.vy,C.knockback.player);
+    this.woundEffect(p,injury,bullet,hit);this.checkPlayerDeath();return injury;
+  }
+  checkPlayerDeath(){
+    const p=this.player;if(!p.dead||p.deathHandled)return;
+    p.deathHandled=true;p.knifeSwing=0;this.state='dead';this.effects.fallen(p);this.audio.play('dead');
+  }
+  updateWounds(e,dt){
+    tickWounds(e,dt,(part,size)=>this.effects.bleed(e,part,size,this.walls));
+    if(e===this.player)this.checkPlayerDeath();else if(e.dead)this.killEnemy(e);
   }
   update(dt,input) {
     if(this.state!=='playing')return;
@@ -139,31 +180,36 @@ export class World {
     const p=this.player,a=C.arena;
     const mv=input.movement();
     p.angle=Math.atan2(input.mouse.y-p.y,input.mouse.x-p.x);
-    p.invulnerable=Math.max(0,p.invulnerable-dt);
+    p.hitFlash=Math.max(0,(p.hitFlash||0)-dt);
+    this.updateWounds(p,dt);if(p.dead)return;
     this.feedback.update(dt);
     p.shotTimer-=dt;
     this.recoil=Math.max(0,this.recoil-dt*45);
       this.effects.update(dt,this.walls);
     if(this.weapon.update(dt))this.audio.play('reloadReady');
     if(input.consumeReload?.()&&!p.knifeEquipped&&this.weapon.reload())this.audio.play('reload');
-    const moveSpeed=playerMoveSpeed(p,this.weapon,input.mouse.down);
+    const moveSpeed=playerMoveSpeed(p,this.weapon,input.mouse.down)*injuryMoveScale(p);
     p.vx=mv.x*moveSpeed;p.vy=mv.y*moveSpeed;
     const oldPX=p.x,oldPY=p.y;
     moveBody(p,p.vx*dt,p.vy*dt,this.walls);
     updateFootsteps(p,oldPX,oldPY,p,(...args)=>{this.audio.play(...args);this.emitPlayerSound('footstep');},true);
     moveKnockback(p,dt,this.walls);
     animateStride(p,oldPX,oldPY);
+    const changingInterrupted=!!(mv.x||mv.y||input.mouse.down||!input.lootHeld?.());
+    if(input.consumeLoot?.()&&!changingInterrupted&&!this.pickups.changing){
+      const rounds=this.pickups.collectAmmo(p,this.walls,this.weapon);
+      if(this.pickups.start(p,this.walls)){p.knifeSwing=0;this.feedback.show('부위당 2.5초 · E 유지 · 떼거나 움직이면 중단');}
+      else this.feedback.show(rounds?`탄약 ${rounds}발 획득`:'시체 위에서 E · 획득할 장비 필요');
+    }
+    if(this.pickups.update(p,this.walls,dt,changingInterrupted))this.audio.play('reloadReady');
     if(updateKnife(p,dt,input.mouse.down,(type)=>this.audio.play(type))){
       for(const e of knifeTargets(p,this.enemies.filter(e=>e.born<=0),this.walls)){
-        e.hp=0;e.active=false;e.headDestroyed=true;e.aimRemaining=0;e.burstLeft=0;
-        this.effects.detachHead(e,p.angle);this.effects.fallen(e,p.angle);this.effects.impact(e.x,e.y,p.angle,this.walls);
-        this.kills++;this.score+=e.score;this.feedback.killed(this.time);
-        this.pickups.drop(e,this.walls,this.random);this.audio.play('impact');
+        this.strikeKnife(e);if(e.dead)this.killEnemy(e);
       }
     }
-    if(!p.knifeEquipped&&input.mouse.down&&p.shotTimer<=0&&this.weapon.consume()) {
+    if(!p.armsDisabled&&!p.knifeEquipped&&input.mouse.down&&p.shotTimer<=0&&this.weapon.consume()) {
       const boosted=false;
-      this.shoot(p.x,p.y,p.angle,false,p.damage*(boosted?4:1),C.weapon.speed,boosted);
+      this.shoot(p.x,p.y,shotAngle(p,p.angle,this.random),false,p.damage*(boosted?4:1),C.weapon.speed,boosted);
       p.shotTimer=p.fireInterval;
       this.recoil=boosted?10:6;
       this.effects.fire(p,boosted);
@@ -171,28 +217,27 @@ export class World {
       this.audio.play('shot');
       if(this.weapon.ammo===0&&this.weapon.reload())this.audio.play('reload');
     }
+    prepareSquad(this.enemies,p,this.walls,dt);
     for(const e of this.enemies) {
       if(!e.active)continue;
+      this.updateWounds(e,dt);if(!e.active)continue;
       e.flash=Math.max(0,e.flash-dt);
       e.muzzle=Math.max(0,(e.muzzle||0)-dt);
       if(e.born>0) {
         e.born-=dt;
         continue;
       }
+      updateEnemyReload(e,dt);
       e.timer-=dt;
-      let vx=0,vy=0;
-      if(e.role==='assault'){const motion=updateAssault(e,dt,p,this.walls,(...args)=>this.shoot(...args));vx=motion.x;vy=motion.y;}
-      if(e.type==='shooter') {
-        const motion=updateCoverDefender(e,dt,p,this.walls,(...args)=>this.shoot(...args));
-        vx=motion.x;vy=motion.y;
-      }
+      const motion=updateTacticalEnemy(e,dt,this.walls,this.enemies,(...args)=>this.shoot(...args),this.random);
+      let vx=motion.x,vy=motion.y;
       const oldEX=e.x,oldEY=e.y;
       const injuryScale=injuryMoveScale(e);vx*=injuryScale;vy*=injuryScale;
       moveBody(e,vx*dt,vy*dt,this.walls);
       updateFootsteps(e,oldEX,oldEY,p,(...args)=>this.audio.play(...args));
       animateStride(e,oldEX,oldEY);
       moveKnockback(e,dt,this.walls);
-      this.effects.blood.trail(e,oldEX,oldEY,this.walls);
+
     }
     this.grid.clear();
     for(const e of this.enemies)if(e.active&&e.born<=0)this.grid.insert(e);
@@ -200,33 +245,15 @@ export class World {
       if(!b.active)continue;
       b.life-=dt;
       traceBullet(b,dt,this.walls,()=>{
-      if(b.hostile) {
-        if(segmentHits(b.px,b.py,b.x,b.y,p.x,p.y,p.radius+b.radius)) {
-          b.active=false;
-          this.hurt(b.damage,b);
-        }
-      }else {
-        for(const e of this.grid.query((b.x+b.px)/2,(b.y+b.py)/2,Math.hypot(b.x-b.px,b.y-b.py)/2+b.radius)) {
-          if(!e.active||!segmentHits(b.px,b.py,b.x,b.y,e.x,e.y,e.radius+b.radius))continue;
-          const injury=applyInjury(e,b.damage,this.random);
-          if(injury.detached)this.effects.detach(e,injury.part,Math.atan2(b.vy,b.vx));
-
-          applyKnockback(e,b.vx,b.vy,C.knockback.enemy);
-          e.flash=.09;
-          this.effects.impact(e.x,e.y,Math.atan2(b.vy,b.vx),this.walls);
-          this.audio.play('impact');
-          b.active=false;
-
-          if(e.hp<=0) {
-            e.active=false;
-            this.kills++;
-            this.feedback.killed(this.time);
-            this.score+=e.score;
-            this.shake=Math.max(this.shake,2);
-            this.effects.fallen(e);
-            this.pickups.drop(e,this.walls,this.random);
-            this.audio.play('dead');
-          }break;
+      if(!b.hostile)registerNearMiss(this.enemies,b);
+      if(b.hostile){
+        const hit=bodyHit(p,b);if(hit){b.active=false;this.hurt(b.damage,b,hit);}
+      }else{
+        const hits=this.enemies.filter(e=>e.active&&e.born<=0).map(e=>({e,hit:bodyHit(e,b)})).filter(v=>v.hit).sort((a,b)=>a.hit.t-b.hit.t);
+        if(hits.length){
+          const {e,hit}=hits[0],injury=applyInjury(e,b.damage,hit,this.time,this.random);
+          this.woundEffect(e,injury,b,hit);applyKnockback(e,b.vx,b.vy,C.knockback.enemy);e.flash=.09;b.active=false;
+          if(e.dead)this.killEnemy(e);
         }
       }
       return !b.active;
@@ -240,7 +267,6 @@ export class World {
       q.y+=q.vy*dt;
       if(q.life<=0)q.active=false;
     }this.enemies=this.enemies.filter(e=>e.active);
-    if(this.state==='playing'&&this.pickups.collect(p,this.walls)>0)this.audio.play('heal');
     if(this.state==='playing'&&this.enemies.length===0) {
       if(!this.exitOpen){
         this.exitOpen=true;this.bullets.clear();
@@ -249,7 +275,7 @@ export class World {
       const exit=this.stage.exit;
       if(Math.hypot(p.x-exit.x,p.y-exit.y)<exit.radius){
         if(this.wave===STAGES.length){this.archiveBattlefield();this.state='won';}
-        else {p.hp=Math.min(p.maxHp,p.hp+C.stage.heal);this.nextStage();input.clear?.();}
+        else {this.nextStage();input.clear?.();}
       }
     }
   }

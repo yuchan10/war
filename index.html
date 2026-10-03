@@ -1,6 +1,8 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>전초선</title><link rel="stylesheet" href="style.css"></head>
-<body><main><div class="arena"><canvas id="game" width="1200" height="720" aria-label="WASD 이동, 마우스 공격, 휠로 칼과 총 전환, R 장전"></canvas>
+<body><main><div class="arena"><canvas id="game" width="1200" height="720" aria-label="WASD 이동, 마우스 공격, 휠로 칼과 총 전환, R 장전, E 방어구 탈취"></canvas>
 <div class="controls hidden"><button id="settings" aria-label="설정" title="설정 (Esc)">⚙</button></div>
-<div class="combat-hud hidden"><div class="health" id="health-meter" role="progressbar" aria-label="체력" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="health"></i></div><div class="ammo-block"><span id="ammo">12 / 12</span><div class="reload-track"><i id="reload-progress"></i></div></div></div>
+<button id="skip-prologue" class="skip-prologue hidden" title="수송차 뒤 은신 위치에서 수색 장면 시작">연출 건너뛰기 ▸</button>
+<div id="body-panel" class="body-panel hidden"><div id="body-status"></div></div>
+<div class="combat-hud hidden"><div id="loot-hint"></div><div class="ammo-block"><span id="ammo">12 / 12</span><div class="reload-track"><i id="reload-progress"></i></div></div></div>
 <div id="story-caption" class="story-caption hidden" role="status" aria-live="polite"></div><section id="overlay" class="overlay start-screen"><button id="start" class="primary">작전 시작</button></section>
 </div></main><script type="module" src="src/main.js"></script></body></html>

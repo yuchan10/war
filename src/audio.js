@@ -1,3 +1,4 @@
+import { playKnifeImpact } from './knife-audio.js';
 import { playGunshot, fetchRifleSamples } from './gunshot-audio.js';
 import { playReload } from './reload-audio.js';
 
@@ -51,6 +52,9 @@ export class Audio {
     if(shot){
       playGunshot(c,this.rifleBuffers?.[type==='enemyShot'?1:0],pan,{gain:distanceGain,distance:Math.hypot(position.dx||0,position.dy||0)});
       return;
+    }
+    if(type==='knifeHit'||type==='knifeArmor'){
+      playKnifeImpact(c,this.noise,pan,type==='knifeArmor');return;
     }
     if(type==='knife'){
       const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();

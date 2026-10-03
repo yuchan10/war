@@ -52,3 +52,16 @@ test('settings restores the start menu and return button resumes combat',t=>{
   assert.equal(world.state,'playing');assert.ok(query('#overlay').classList.contains('hidden'));
   assert.equal(query('.combat-hud').classList.contains('hidden'),false);
 });
+
+test('intro skip starts search at the hiding place with a knife and no rifle',t=>{
+ const {ui,world,input,query}=setup(t);ui.update();assert.ok(query('#skip-prologue').classList.contains('hidden'));
+ ui.start();const spawn={x:world.player.x,y:world.player.y};assert.equal(query('#skip-prologue').classList.contains('hidden'),false);
+ world.update(6,input);input.mouse.down=true;input.keys.add('KeyW');query('#skip-prologue').onclick();
+ assert.equal(world.prologue.phase,'search');assert.equal(world.wave,0);assert.equal(world.enemies.length,0);
+ assert.equal(world.player.hasRifle,false);assert.equal(world.player.knifeEquipped,true);
+ assert.equal(world.player.x,spawn.x);assert.equal(world.player.y,spawn.y);assert.equal(world.kills,0);
+ assert.equal(world.prologue.guards.length,3);assert.ok(world.prologue.guards.every(g=>!g.subdued&&g.y===260));
+ assert.equal(world.effects.items.items.filter(e=>e.kind==='body').length,3);assert.equal(world.prologue.executionShots.length,0);
+ assert.equal(input.mouse.down,false);assert.equal(input.keys.size,0);assert.ok(query('#skip-prologue').classList.contains('hidden'));
+ const intro=world.prologue;query('#skip-prologue').onclick();assert.equal(world.prologue,intro);
+});

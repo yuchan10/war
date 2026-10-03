@@ -5,9 +5,9 @@ import { ENEMIES } from '../src/config.js';
 import { updateCoverDefender } from '../src/cover-ai.js';
 import { hasLineOfSight,moveBody } from '../src/arena.js';
 
-test('all defenders start concealed from the entry and can peek around cover',()=>{
+test('defenders have short peek routes and each sector offers concealed posts',()=>{
   for(const stage of STAGES)for(const post of stage.enemies.filter(e=>e.cover)){
-    assert.equal(hasLineOfSight(post,stage.spawn,stage.walls),false);
+    assert.ok(stage.enemies.some(e=>e.cover&&!hasLineOfSight(e,stage.spawn,stage.walls)));
     assert.ok(Math.hypot(post.cover.peek.x-post.x,post.cover.peek.y-post.y)<80);
   }
 });

@@ -10,15 +10,15 @@ test('each later sector adds one veteran and one resolute soldier, retaining bot
     assert.equal(stage.enemies.length,6);
     assert.equal(stage.enemies.filter(e=>e.skill==='veteran').length,index+1);
     assert.equal(stage.enemies.filter(e=>e.courage==='resolute').length,index+1);
-    assert.equal(stage.enemies.filter(e=>e.type==='assault').length,3);
-    assert.equal(stage.enemies.filter(e=>e.type==='shooter').length,3);
+    assert.ok(stage.enemies.some(e=>e.type==='assault'));
+    assert.ok(stage.enemies.some(e=>e.type==='shooter'));
   });
 });
 
 test('both roles fire at visible targets outside bullet range, even when wounded and resolute',()=>{
   for(const type of ['assault','shooter'])for(const wounded of [false,true]){
     const base=ENEMIES[type];
-    const e={...base,maxHp:base.hp,hp:wounded?1:base.hp,courage:'resolute',x:200,y:350,angle:0,timer:0};
+    const e={...base,wasHit:wounded,bloodLoss:wounded?90:0,courage:'resolute',x:200,y:350,angle:0,timer:0};
     const shots=[],shoot=(...args)=>shots.push(args),player={x:1000,y:350};
     const update=type==='assault'?updateAssault:updateCoverDefender;
     update(e,.01,player,[],shoot);update(e,e.aimDuration,player,[],shoot);

@@ -1,3 +1,4 @@
+import { knifePose } from './knife.js';
 import { drawHood, drawWristBinding } from './captive-appearance.js';
 // Articulated top-down infantry silhouette; gait advances only on movement.
 export function animateStride(entity,oldX,oldY){
@@ -15,7 +16,7 @@ export function animateStride(entity,oldX,oldY){
 }
 
 export function drawSoldier(c,e,player,recoil=0){
-  const aim=(e.aimRemaining>0||e.burstLeft>0?e.aimAngle:e.angle)+(e.aimImpaired?e.aimWobble||0:0);
+  const aim=(e.aimRemaining>0||e.burstLeft>0?e.aimAngle:e.angle);
   const gait=e.walking?Math.sin(e.walkPhase||0)*5:0;
   const cloth=player?'#7e8e63':'#ad936a',dark=player?'#44553c':'#6b573b';
   c.save();c.translate(e.x,e.y);c.rotate(aim);
@@ -37,7 +38,7 @@ export function drawSoldier(c,e,player,recoil=0){
   // Torso, plate carrier and a small backpack are longer than the helmet.
   c.fillStyle=cloth;
   c.beginPath();c.ellipse(-4,0,12,10,0,0,Math.PI*2);c.fill();
-  c.fillStyle=dark;c.fillRect(-13,-7,8,14);c.fillStyle='#30392b';c.fillRect(-8,-6,9,12);
+  c.fillStyle=dark;c.fillRect(-13,-7,8,14);if(!e.body||e.body.torso.armor>0){c.fillStyle='#30392b';c.fillRect(-8,-6,9,12);}
   c.fillStyle=cloth;for(const y of [-5,0,5])c.fillRect(-6,y-1,5,3);
   // Missing limbs stay absent from both live and remembered poses.
   c.save();if(e.rifleLowered)c.rotate(.65);
@@ -67,28 +68,44 @@ export function drawSoldier(c,e,player,recoil=0){
   }
   c.restore();
   if(e.restrained)drawWristBinding(c,-13,0);
-  if(e.knifeEquipped){
-    const swing=e.knifeSwing>0?1-e.knifeSwing/.32:0;
-    c.save();c.rotate(e.knifeSwing>0?-1.1+swing*2.2:.3);
+  if(e.knifeEquipped&&!e.armsDisabled){
+    const pose=knifePose(e.knifeSwing),shoulder={x:-1,y:8};
+    const hand={x:shoulder.x+Math.cos(pose.angle)*pose.reach,y:shoulder.y+Math.sin(pose.angle)*pose.reach};
     c.strokeStyle=cloth;c.lineWidth=6;c.lineCap='round';
-    c.beginPath();c.moveTo(-1,8);c.lineTo(12,10);c.lineTo(22,2);c.stroke();
-    c.fillStyle='#c4ad87';c.beginPath();c.arc(22,2,3,0,Math.PI*2);c.fill();
-    c.fillStyle='#30372e';c.fillRect(21,0,9,4);
-    c.fillStyle='#889386';c.fillRect(29,-2,2,8);
-    c.fillStyle='#d5ddd6';c.beginPath();c.moveTo(31,0);c.lineTo(48,1);c.lineTo(39,5);c.lineTo(31,4);c.closePath();c.fill();
-    if(e.knifeSwing>0){c.strokeStyle='#dbe4ce88';c.lineWidth=2;c.beginPath();c.arc(0,0,49,-.45,.15);c.stroke();}
-    c.restore();
+    // The shoulder stays attached; the elbow bends as the hand extends and returns.
+    c.beginPath();c.moveTo(shoulder.x,shoulder.y);c.lineTo((shoulder.x+hand.x)*.5-2,(shoulder.y+hand.y)*.5+6);c.lineTo(hand.x,hand.y);c.stroke();
+    if(!e.missingArms?.includes(-1)){
+      c.beginPath();c.moveTo(-1,-9);c.lineTo(5,-13);c.lineTo(12,-8);c.stroke();
+      c.fillStyle='#c4ad87';c.beginPath();c.arc(12,-8,2.5,0,Math.PI*2);c.fill();
+    }
+    c.fillStyle='#c4ad87';c.beginPath();c.arc(hand.x,hand.y,3,0,Math.PI*2);c.fill();
+    c.save();c.translate(hand.x,hand.y);c.rotate(pose.angle+pose.wrist);
+    c.fillStyle='#30372e';c.fillRect(-1,-2,9,4);
+    c.fillStyle='#889386';c.fillRect(7,-4,2,8);
+    c.fillStyle='#d5ddd6';c.beginPath();c.moveTo(9,-2);c.lineTo(26,-1);c.lineTo(17,3);c.lineTo(9,2);c.closePath();c.fill();c.restore();
+    if(pose.trail>0){
+      c.save();c.globalAlpha*=pose.trail*.5;c.strokeStyle='#dbe4ce';c.lineWidth=1.5;
+      c.beginPath();c.arc(shoulder.x,shoulder.y,pose.reach+22,pose.angle-.4,pose.angle-.05);c.stroke();c.restore();
+    }
   }
   for(const side of e.missingArms||[]){c.fillStyle='#773d30';c.fillRect(-2,side*9-2,5,4);}
   for(const side of e.missingLegs||[]){c.fillStyle='#773d30';c.fillRect(-8,side*6-2,5,4);}
   // Face edge and helmet, visibly separate from the shoulders.
   if(e.hooded)drawHood(c,1,-4);
-  else{
+  else if(!e.headDestroyed){
   c.fillStyle='#bfa580';c.beginPath();c.arc(4,-3,6,0,Math.PI*2);c.fill();
+  if(!e.body||e.body.head.armor>0){
   c.fillStyle=player?'#9ead7d':'#c1aa7c';
   c.beginPath();c.ellipse(1,-4,7.5,7,0,0,Math.PI*2);c.fill();
   c.strokeStyle=dark;c.lineWidth=2;c.beginPath();c.arc(1,-4,6,-2.8,.8);c.stroke();
   c.fillStyle=player?'#d3ddbc':'#776041';c.fillRect(-1,-9,4,2);
+  }
+  }
+  if(e.body){
+    for(const [key,side,x,y] of [['leftArm',-1,3,-12],['rightArm',1,3,10],['leftLeg',-1,-8,-7],['rightLeg',1,-8,5]]){
+      const p=e.body[key];if(p.severed||p.armor<=0)continue;
+      c.fillStyle=p.armor/p.maxArmor<.35?'#807555':'#4c5748';c.fillRect(x,y,6,4);
+    }
   }
   if(e.aimRemaining>0){c.fillStyle='#d4ac72';c.fillRect(34,1,2,2);}
   if(e.muzzle>0){c.fillStyle='#fff0b5';c.beginPath();c.moveTo(35,-4);c.lineTo(50,2);c.lineTo(35,8);c.fill();}

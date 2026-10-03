@@ -13,7 +13,8 @@ export function visiblePoint(player,target,walls,vision=player.vision??VISION){
 
 // Raycast the light boundary against the same geometry used by bullets.
 export function visionPolygon(player,walls,vision=player.vision??VISION){
-  const a=CONFIG.arena;
+  // Lighting extends to the canvas edge; the inset movement boundary is not a wall.
+  const a={left:0,top:0,right:CONFIG.width,bottom:CONFIG.height};
   const edges=[...walls,{x:a.left-20,y:a.top-20,w:20,h:a.bottom-a.top+40},{x:a.right,y:a.top-20,w:20,h:a.bottom-a.top+40},{x:a.left-20,y:a.top-20,w:a.right-a.left+40,h:20},{x:a.left-20,y:a.bottom,w:a.right-a.left+40,h:20}];
   const angles=[];
   for(let i=0;i<180;i++)angles.push(-Math.PI+i*Math.PI*2/180);

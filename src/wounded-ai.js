@@ -1,3 +1,4 @@
+import { woundSeverity } from './injury.js';
 import { visiblePoint } from './visibility.js';
 import { routeDirection } from './arena.js';
 import { updateContact } from './contact-memory.js';
@@ -8,7 +9,7 @@ import { concealed, findRetreatCover } from './cover-retreat.js';
 
 // Injured soldiers fight a forward threat or seek cover from its last known position.
 export function updateWounded(e,dt,player,walls,shoot){
-  const wounded=(e.maxHp!==undefined&&e.hp<e.maxHp)||e.armsDisabled||e.legsDisabled||
+  const wounded=e.wasHit||e.armsDisabled||e.legsDisabled||
     !!(e.missingArms?.length||e.missingLegs?.length);
   if(!wounded)return null;
   const bearing=Math.atan2(player.y-e.y,player.x-e.x);
@@ -16,7 +17,7 @@ export function updateWounded(e,dt,player,walls,shoot){
   const contact=updateContact(e,player,walls,dt,visible),courage=courageProfile(e);
   e.suppressing=false;
   const armed=!e.armsDisabled&&!e.unarmed;
-  const retreat=courage.retreatOnHit||e.hp/(e.maxHp??e.hp??1)<=courage.retreatHpRatio;
+  const retreat=courage.retreatOnHit||woundSeverity(e)>=courage.retreatSeverity;
   if(!retreat&&visible&&armed){
     e.woundedState='fight';e.angle=bearing;e.suppressionWall=null;
     updateEnemyFire(e,dt,player,(x,y,angle,...args)=>{

@@ -9,8 +9,8 @@ test('hit stains survive particles and reset with the stage',()=>{
   const fx=new Effects();fx.impact(300,300,0);const count=fx.blood.marks.length;
   assert.ok(count>0);fx.update(30);assert.equal(fx.blood.marks.length,count);
   fx.clear();assert.equal(fx.blood.marks.length,0);
-  const w=new World({play(){}});w.start();w.hurt(10,{vx:1,vy:0});
-  w.player.invulnerable=0;w.hurt(10,{vx:1,vy:0});assert.ok(w.effects.blood.marks.length>0);
+  const w=new World({play(){}});w.start();w.player.body.torso.armor=0;w.hurt(10,{vx:1,vy:0},{region:'torso'});
+  w.player.invulnerable=0;w.hurt(10,{vx:1,vy:0},{region:'torso'});assert.ok(w.effects.blood.marks.length>0);
   w.nextStage();assert.equal(w.effects.blood.marks.length,0);
 });
 
@@ -44,11 +44,21 @@ test('each missing arm removes 25 speed, without compounding across frames',()=>
 });
 
 test('actual gunshot leaves terrain blood and a moving wounded enemy leaves a trail',()=>{
-  const w=new World({play(){}},()=>.61);w.start();w.walls=[];w.enemies=[];
-  w.spawnEnemy('assault',600,360);const e=w.enemies[0];e.born=0;
+  const w=new World({play(){}},()=>.25);w.start();w.walls=[];w.enemies=[];
+  w.spawnEnemy('assault',600,360);const e=w.enemies[0];e.born=0;e.body.torso.armor=0;e.speed=0;e.timer=100;
   const idle={mouse:{x:900,y:360,down:false},movement:()=>({x:0,y:0})};
   w.shoot(580,360,0,false,30,1550);w.update(1/120,idle);
-  assert.equal(e.missingArms.length,1);const count=w.effects.blood.marks.length;assert.ok(count>0);
-  for(let i=0;i<60;i++)w.update(1/120,idle);
+  assert.equal(e.body.torso.damage,30);const count=w.effects.blood.marks.length;assert.ok(count>0);
+  for(let i=0;i<120;i++)w.update(1/120,idle);
   assert.ok(w.effects.blood.marks.length>count);
+});
+
+test('bleeding drops land before pooling, spread, darken and stay finite beside cover',()=>{
+ const fx=new Effects(),e={x:300,y:300,angle:0},walls=[{x:320,y:270,w:30,h:80}];
+ fx.bleed(e,'torso',5,walls);assert.equal(fx.blood.marks.length,0);
+ for(let i=0;i<30;i++)fx.update(.01,walls);
+ assert.equal(fx.blood.marks.length,1);const mark=fx.blood.marks[0];assert.ok(Number.isFinite(mark.x)&&Number.isFinite(mark.y));
+ const size=mark.size;fx.bleed(e,'torso',5,walls);for(let i=0;i<30;i++)fx.update(.01,walls);
+ assert.equal(fx.blood.marks.length,1);assert.ok(mark.size>size);
+ fx.update(45,walls);assert.equal(mark.spread,1);assert.ok(mark.age>=45);assert.equal(fx.blood.marks.length,1);
 });

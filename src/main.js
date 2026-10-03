@@ -28,6 +28,9 @@ let last=performance.now(),accumulator=0,uiTime=0;
 document.addEventListener('visibilitychange',()=> {
   if(document.hidden&&world.state==='playing')ui.openSettings();
 });
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement&&world.state==='playing')ui.openSettings();
+});
 window.addEventListener('blur',()=> {
   if(world.state==='playing')ui.openSettings();
 });

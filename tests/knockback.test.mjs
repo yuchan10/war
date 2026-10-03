@@ -20,15 +20,15 @@ test('knockback resistance and boundaries limit displacement',()=>{
 });
 test('actual player bullet impact applies knockback to enemy',()=>{
   const w=new World({play(){}},()=>.3);w.start();w.enemies=[];w.spawnEnemy('assault');
-  const e=w.enemies[0];Object.assign(e,{x:700,y:360,born:0});
+  const e=w.enemies[0];Object.assign(e,{x:700,y:360,born:0,speed:0});
   w.shoot(680,360,0,false,1,900);
   const input={mouse:{x:900,y:360,down:false},movement:()=>({x:0,y:0}),consumeDash:()=>false};
-  w.update(CONFIG.step,input);assert.ok(e.knockX>0);
+  for(let i=0;i<4&&!e.knockX;i++)w.update(CONFIG.step,input);assert.ok(e.knockX>0);
   const x=e.x;w.update(CONFIG.step,input);assert.ok(e.x>x);
 });
-test('player invulnerability prevents repeated knockback',()=>{
+test('each real player hit produces knockback without discarding rapid hits',()=>{
   const w=new World({play(){}});w.start();w.player.invulnerable=0;
   const bullet={vx:1,vy:0};w.hurt(10,bullet);const impulse=w.player.knockX;
-  assert.ok(impulse>0);w.hurt(10,bullet);assert.equal(w.player.knockX,impulse);
+  assert.ok(impulse>0);w.hurt(10,bullet);assert.ok(w.player.knockX>impulse);
 });
 

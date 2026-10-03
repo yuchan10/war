@@ -28,7 +28,7 @@ test('support suppresses a remembered position even after thirty seconds out of 
 test('wounded soldiers only fight a visible forward target with a usable rifle',()=>{
   const ally={x:700,y:350,hp:100,active:true};
   for(const role of ['assault','shooter']){
-    const base={...ENEMIES[role],maxHp:ENEMIES[role].hp,hp:80,x:500,y:350,angle:0,timer:0};
+    const base={...ENEMIES[role],wasHit:true,x:500,y:350,angle:0,timer:0};
     const e={...base};let shots=0;
     assert.deepEqual(updateWounded(e,.01,{x:650,y:350},[],()=>shots++,[ally]),{x:0,y:0});
     updateWounded(e,e.aimDuration,{x:650,y:350},[],()=>shots++,[ally]);assert.equal(shots,1);
@@ -46,7 +46,7 @@ test('wounded soldiers only fight a visible forward target with a usable rifle',
 test('world does not rotate a wounded soldier toward an unseen rear threat before deciding to retreat',()=>{
   const w=new World({play(){}});w.start();w.walls=[];w.enemies=[];
   w.spawnEnemy('assault',500,350);w.spawnEnemy('shooter',750,350);
-  const e=w.enemies[0];Object.assign(e,{born:0,hp:80,angle:0});
+  const e=w.enemies[0];Object.assign(e,{born:0,wasHit:true,angle:0});
   Object.assign(w.player,{x:350,y:350});
   w.update(.01,{mouse:{x:500,y:350,down:false},movement:()=>({x:0,y:0})});
   assert.equal(e.woundedState,'hold');assert.equal(e.x,500);

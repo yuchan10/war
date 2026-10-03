@@ -46,7 +46,7 @@ test('losing sight preserves only the last seen position',()=>{
 
 test('limb loss follows courage and health, while each arm still reduces speed',()=>{
   for(const courage of ['cautious','steady','resolute'])for(const hp of [100,40]){
-    const e={...ENEMIES.assault,maxHp:120,hp,courage,x:600,y:350,angle:0,
+    const e={...ENEMIES.assault,bloodLoss:120-hp,courage,x:600,y:350,angle:0,
       missingArms:[1],missingLegs:[1],armsDisabled:true,legsDisabled:true};
     updateWounded(e,.01,{x:800,y:350},[],()=>assert.fail('lost rifle cannot fire'));
     assert.equal(e.woundedState,courage==='cautious'||courage==='steady'&&hp<=60?'cover':'hold');

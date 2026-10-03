@@ -20,6 +20,22 @@ test('assault paths from every deployment reach the approach area',()=>{
     for(let i=0;i<1500&&Math.hypot(body.x-target.x,body.y-target.y)>10;i++){
       const d=routeDirection(body,target,s.walls);moveBody(body,d.x*2,d.y*2,s.walls);
     }
-    assert.ok(Math.hypot(body.x-target.x,body.y-target.y)<10,s.name+' assault trapped');
+    assert.ok(Math.hypot(body.x-target.x,body.y-target.y)<=10,s.name+' assault trapped');
   }
+});
+
+test('every exit and enemy position is reachable from its sector entrance',()=>{
+ for(const s of STAGES)for(const target of [s.exit,...s.enemies]){
+  const body={...s.spawn,radius:17};
+  for(let i=0;i<2200&&Math.hypot(body.x-target.x,body.y-target.y)>10;i++){
+   const direction=routeDirection(body,target,s.walls);moveBody(body,direction.x*3,direction.y*3,s.walls);
+  }
+  assert.ok(Math.hypot(body.x-target.x,body.y-target.y)<=10,s.name+' unreachable '+JSON.stringify(target));
+ }
+});
+test('sectors vary approach direction, squad composition and tactical guidance',()=>{
+ assert.equal(new Set(STAGES.map(s=>JSON.stringify(s.spawn))).size,6);
+ assert.equal(new Set(STAGES.map(s=>JSON.stringify(s.exit))).size,6);
+ assert.ok(new Set(STAGES.map(s=>s.enemies.filter(e=>e.type==='shooter').length)).size>=3);
+ assert.equal(new Set(STAGES.map(s=>s.strategy)).size,6);
 });

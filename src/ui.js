@@ -1,3 +1,5 @@
+import { enterFullscreen } from './fullscreen.js';
+import { bodyStatusMarkup } from './body-status.js';
 export class UI {
   constructor(world,input,audio,settings){
     this.w=world;this.input=input;this.audio=audio;this.settings=settings;
@@ -5,8 +7,11 @@ export class UI {
     this.audio.enabled=settings.values.sound;
     document.querySelector('#start').onclick=()=>this.start();
     document.querySelector('#settings').onclick=()=>this.openSettings();
+    document.querySelector('#skip-prologue').onclick=()=>{
+      if(this.w.skipPrologue()){this.input.clear();this.update();}
+    };
   }
-  start(){this.audio.unlock();this.input.clear();this.w.startPrologue();this.update();}
+  start(){enterFullscreen();this.audio.unlock();this.input.clear();this.w.startPrologue();this.update();}
   toggleSound(){this.audio.enabled=!this.audio.enabled;this.settings.set('sound',this.audio.enabled);if(this.audio.enabled)this.audio.unlock();}
   toggleSettings(){if(this.settingsOpen)this.closeSettings();else this.openSettings();}
   openSettings(){
@@ -29,14 +34,16 @@ export class UI {
     document.querySelector('#shake-setting').onchange=e=>this.settings.set('cameraShake',e.target.checked);
     document.querySelector('#close-settings').onclick=()=>this.closeSettings();
   }
-  closeSettings(){this.settingsOpen=false;this.w.state=this.previousState;this.input.clear();this.overlay.innerHTML=this.savedMarkup;this.lastState='';const start=document.querySelector('#start');if(start)start.onclick=()=>this.start();this.update();}
+  closeSettings(){if(this.previousState==='playing')enterFullscreen();this.settingsOpen=false;this.w.state=this.previousState;this.input.clear();this.overlay.innerHTML=this.savedMarkup;this.lastState='';const start=document.querySelector('#start');if(start)start.onclick=()=>this.start();this.update();}
   update(){
     const w=this.w,p=w.player,gun=w.weapon;
-    document.querySelector('#health').style.width=`${p.hp/p.maxHp*100}%`;
-    document.querySelector('#health-meter').setAttribute('aria-valuenow',Math.ceil(p.hp));
-    document.querySelector('#ammo').textContent=p.knifeEquipped?'전투용 칼':p.unarmed?'비무장':`${String(gun.ammo).padStart(2,'0')} / ${gun.capacity}`;
+    document.querySelector('#skip-prologue').classList.toggle('hidden',w.state!=='playing'||w.prologue?.phase!=='witness');
+    document.querySelector('#body-status').innerHTML=bodyStatusMarkup(p,w.time);
+    document.querySelector('#body-panel').classList.toggle('hidden',w.state!=='playing');
+    document.querySelector('#loot-hint').textContent=w.pickups.changing?'E 누른 채 정지 · 놓으면 교체 취소':w.pickups.available(p,w.walls,gun)?'E · 탄약 획득 / 길게 눌러 방어구 교체 (부위당 2.5초)':'';
+    document.querySelector('#ammo').textContent=p.armsDisabled?'사격 불가':p.knifeEquipped?'전투용 칼':p.unarmed?'비무장':`${String(gun.ammo).padStart(2,'0')} / ${gun.reserve}`;
     const caption=document.querySelector('#story-caption');
-    caption.textContent=w.prologue&&w.state==='playing'?w.prologue.caption:'';
+    caption.textContent=w.state==='playing'?(w.prologue?w.prologue.caption:(w.time-w.stageStartedAt<7?`${w.stage.name} · ${w.stage.strategy}`:'')):'';
     caption.classList.toggle('hidden',!caption.textContent);
     document.querySelector('#ammo').style.color=p.knifeEquipped?'#e1dfd1':gun.reloading?'#d4b77b':gun.ammo<=3?'#e39d83':'#e1dfd1';
     document.querySelector('#reload-progress').style.width=`${p.unarmed?0:(gun.reloading?1-gun.reloadRemaining/gun.reloadDuration:gun.ammo/gun.capacity)*100}%`;

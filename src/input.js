@@ -7,9 +7,9 @@ export class Input {
     this.mouse= {
       x:600,y:360,down:false
     };
-    this.reload=false;this.switchWeapon=false;this.lastWheel=-Infinity;
+    this.loot=false;this.reload=false;this.switchWeapon=false;this.lastWheel=-Infinity;
     window.addEventListener('keydown',e=> {
-      if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();this.keys.add(e.code);if(!e.repeat&&e.code==='KeyR')this.reload=true;if(!e.repeat&&e.code==='Escape')onSettings();if(!e.repeat&&e.code==='KeyM')onSound();
+      if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();this.keys.add(e.code);if(!e.repeat&&e.code==='KeyE')this.loot=true;if(!e.repeat&&e.code==='KeyR')this.reload=true;if(!e.repeat&&e.code==='Escape')onSettings();if(!e.repeat&&e.code==='KeyM')onSound();
     });
     window.addEventListener('keyup',e=>this.keys.delete(e.code));
     canvas.addEventListener('pointermove',e=>this.point(e,canvas));
@@ -34,10 +34,10 @@ export class Input {
     const value=this.reload;
     this.reload=false;
     return value;
-  }consumeWeaponSwitch(){const value=this.switchWeapon;this.switchWeapon=false;return value;}clear() {
+  }lootHeld(){return this.keys.has('KeyE');}consumeLoot(){const value=this.loot;this.loot=false;return value;}consumeWeaponSwitch(){const value=this.switchWeapon;this.switchWeapon=false;return value;}clear() {
     this.keys.clear();
     this.mouse.down=false;
     this.switchWeapon=false;this.lastWheel=-Infinity;
-    this.reload=false;
+    this.reload=false;this.loot=false;
   }
 }

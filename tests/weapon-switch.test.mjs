@@ -33,15 +33,15 @@ test('knife movement is faster, cancels reload and preserves rifle ammunition on
   assert.equal(playerMoveSpeed(w.player,w.weapon,false),126);
 });
 
-test('normal combat knife kills once without shooting and rifle still fires after switching back',()=>{
-  const w=new World({play(){}});w.start();w.walls=[];w.enemies=[];
+test('normal combat knife damages armor without shooting and rifle still fires after switching back',()=>{
+  const w=new World({play(){}},()=>.5);w.start();w.walls=[];w.enemies=[];
   Object.assign(w.player,{x:300,y:300});w.spawnEnemy('assault',340,300);
   Object.assign(w.enemies[0],{born:0,speed:0,timer:10});
   w.update(.01,swap);
   const attack={...idle,mouse:{...idle.mouse,down:true}};
   for(let i=0;i<20;i++)w.update(.01,attack);
-  assert.equal(w.kills,1);assert.equal(w.weapon.ammo,12);
-  assert.equal(w.effects.items.items.filter(e=>e.kind==='droppedHead').length,1);
+  assert.equal(w.kills,0);assert.equal(w.weapon.ammo,12);assert.equal(w.enemies[0].body.torso.armor,30);
+  assert.equal(w.effects.items.items.filter(e=>e.kind==='droppedHead').length,0);
   w.update(.01,swap);w.update(.01,attack);assert.equal(w.weapon.ammo,11);
 });
 

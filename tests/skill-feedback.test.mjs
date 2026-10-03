@@ -31,5 +31,5 @@ test('enemy projectiles are stopped by cover instead of bouncing into shelter',(
   traceBullet(b,1,[{x:400,y:220,w:150,h:30}]);assert.equal(b.active,false);assert.equal(b.reflected,undefined);
 });
 test('every stage limits cover count and has fixed enemies',()=>{
-  for(const stage of STAGES){assert.ok(stage.enemies.length>0);assert.ok(stage.walls.length<=6);assert.ok(stage.enemies.length>=5);}
+  for(const stage of STAGES){assert.ok(stage.enemies.length>0);assert.ok(stage.walls.length<=7);assert.ok(stage.enemies.length>=5);}
 });

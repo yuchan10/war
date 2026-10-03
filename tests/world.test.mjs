@@ -28,10 +28,10 @@ test('touching a soldier causes no damage, but a close bullet still hits',()=>{
     w.spawnEnemy(type,310,300);
     Object.assign(w.enemies[0],{born:0,timer:100,speed:0});
     for(let i=0;i<60;i++)w.update(CONFIG.step,idle);
-    assert.equal(w.player.hp,100,`${type} must not deal contact damage`);
+    assert.equal(w.player.wasHit,undefined,`${type} must not deal contact damage`);
     w.shoot(310,300,Math.PI,true,22,1000);
     w.update(CONFIG.step,idle);
-    assert.equal(w.player.hp,78,`${type} close-range bullets still deal damage`);
+    assert.equal(w.player.wasHit,true,`${type} close-range bullets still deal damage`);
   }
 });
 test('swept collision catches a bullet crossing a small target',()=> {
@@ -51,8 +51,8 @@ test('spatial hash returns large enemies across cell boundaries',()=> {
     x:80,y:80,radius:46
   };s.insert(e);assert.ok(s.query(35,80,4).has(e));
 });
-test('movement stays inside arena and damage has invulnerability',()=> {
-  const w=new World(audio);w.start();w.player.invulnerable=0;w.hurt(10);w.hurt(10);assert.equal(w.player.hp,90);for(let i=0;i<300;i++)w.update(CONFIG.step, {
+test('movement stays inside arena and armor absorbs rapid hits',()=> {
+  const w=new World(audio);w.start();w.player.invulnerable=0;w.hurt(10,null,{region:'torso'});w.hurt(10,null,{region:'torso'});assert.equal(w.player.body.torso.armor,66.5);for(let i=0;i<300;i++)w.update(CONFIG.step, {
     ...idle,movement:()=>( {
       x:-1,y:0
     })
@@ -64,10 +64,10 @@ test('stage waits for exit and all enemies before advancing',()=> {
   w.player.x=150;w.enemies=[];
   for(let i=0;i<260;i++)w.update(CONFIG.step,idle);
   assert.equal(w.wave,1);assert.equal(w.exitOpen,true);
-  const damage=w.player.damage;w.player.hp=50;w.weapon.consume();
+  const damage=w.player.damage;w.player.bloodLoss=50;w.weapon.consume();
   Object.assign(w.player,w.stage.exit);w.update(CONFIG.step,idle);
   assert.equal(w.wave,2);assert.equal(w.player.damage,damage);
-  assert.equal(w.player.hp,65);assert.equal(w.weapon.ammo,12);
+  assert.equal(w.player.bloodLoss,50);assert.equal(w.weapon.ammo,11);
 });
 test('six fixed stages finish at final exit without upgrades',()=>{
   const w=new World(audio);w.start();
@@ -75,5 +75,5 @@ test('six fixed stages finish at final exit without upgrades',()=>{
   assert.equal(w.state,'won');
 });
 test('pause does not simulate and reset removes previous run objects',()=> {
-  const w=new World(audio);w.start();w.state='paused';w.update(1,idle);assert.equal(w.time,0);w.spawnEnemy('assault');w.start();assert.equal(w.enemies.length,w.stage.enemies.length);assert.equal(w.wave,1);assert.equal(w.player.hp,100);
+  const w=new World(audio);w.start();w.state='paused';w.update(1,idle);assert.equal(w.time,0);w.spawnEnemy('assault');w.start();assert.equal(w.enemies.length,w.stage.enemies.length);assert.equal(w.wave,1);assert.equal(w.player.dead,false);
 });
