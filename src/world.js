@@ -1,3 +1,4 @@
+import { headAimTarget } from './head-aim.js';
 import { prepareSquad,registerNearMiss,notifyCasualty } from './squad-ai.js';
 import { updateTacticalEnemy } from './tactical-ai.js';
 import { updateEnemyReload } from './enemy-fire.js';
@@ -122,11 +123,11 @@ export class World {
     const listeners=this.prologue&&this.prologue.phase!=='revenge'?this.prologue.guards:this.enemies;
     hearSound(listeners,{x,y},type,this.walls,this.random);
   }
-  shoot(x,y,angle,hostile,damage,speed,empowered=false,bulletRange=C.weapon.bulletRange) {
+  shoot(x,y,angle,hostile,damage,speed,empowered=false,bulletRange=C.weapon.bulletRange,headTarget=null) {
     if(!hostile)this.emitPlayerSound('gunshot',x,y);
     if(hostile)this.audio.play('enemyShot',{dx:x-this.player.x,dy:y-this.player.y});
     this.bullets.spawn( {
-      x,y,px:x,py:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:empowered?8:hostile?6:4,hostile,damage,life:hostile?5:C.weapon.life,empowered,remainingRange:bulletRange,alertedEnemies:new Set()
+      x,y,px:x,py:y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,radius:empowered?8:hostile?6:4,hostile,damage,life:hostile?5:C.weapon.life,empowered,remainingRange:bulletRange,alertedEnemies:new Set(),headTarget
     });
   }
   strikeKnife(target){
@@ -209,7 +210,7 @@ export class World {
     }
     if(!p.armsDisabled&&!p.knifeEquipped&&input.mouse.down&&p.shotTimer<=0&&this.weapon.consume()) {
       const boosted=false;
-      this.shoot(p.x,p.y,shotAngle(p,p.angle,this.random),false,p.damage*(boosted?4:1),C.weapon.speed,boosted);
+      this.shoot(p.x,p.y,shotAngle(p,p.angle,this.random),false,p.damage*(boosted?4:1),C.weapon.speed,boosted,C.weapon.bulletRange,headAimTarget(this,input.mouse));
       p.shotTimer=p.fireInterval;
       this.recoil=boosted?10:6;
       this.effects.fire(p,boosted);
@@ -251,7 +252,9 @@ export class World {
       }else{
         const hits=this.enemies.filter(e=>e.active&&e.born<=0).map(e=>({e,hit:bodyHit(e,b)})).filter(v=>v.hit).sort((a,b)=>a.hit.t-b.hit.t);
         if(hits.length){
-          const {e,hit}=hits[0],injury=applyInjury(e,b.damage,hit,this.time,this.random);
+          const {e,hit}=hits[0];
+          hit.headshot=hit.region==='center'&&b.headTarget===e;
+          const injury=applyInjury(e,b.damage,hit,this.time,this.random);
           this.woundEffect(e,injury,b,hit);applyKnockback(e,b.vx,b.vy,C.knockback.enemy);e.flash=.09;b.active=false;
           if(e.dead)this.killEnemy(e);
         }
