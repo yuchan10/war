@@ -20,6 +20,7 @@ export class UI {
     this.savedMarkup=this.overlay.innerHTML;this.overlay.classList.remove('hidden','start-screen');const s=this.settings.values;
     this.overlay.innerHTML=`<div class="modal settings-panel"><h2>설정</h2>
     <label class="setting"><span>적 시야 범위</span><input type="checkbox" id="enemy-vision" ${s.enemyVision?'checked':''}></label>
+    <label class="setting"><span>적 히트박스 보기</span><input type="checkbox" id="enemy-hitboxes" ${s.enemyHitboxes?'checked':''}></label>
     <label class="setting"><span>내 탄환 예상 경로</span><input type="checkbox" id="player-prediction" ${s.playerPrediction?'checked':''}></label>
     <label class="setting"><span>적 탄환 예상 경로</span><input type="checkbox" id="enemy-prediction" ${s.enemyPrediction?'checked':''}></label>
     <label class="setting"><span>효과음</span><input type="checkbox" id="sound-setting" ${s.sound?'checked':''}></label>
@@ -27,6 +28,7 @@ export class UI {
     <label class="setting"><span>화면 흔들림</span><input type="checkbox" id="shake-setting" ${s.cameraShake?'checked':''}></label>
     <p class="muted">경로 표시는 각각 독립적으로 설정됩니다.</p><button id="close-settings" class="primary">돌아가기</button></div>`;
     document.querySelector('#enemy-vision').onchange=e=>this.settings.set('enemyVision',e.target.checked);
+    document.querySelector('#enemy-hitboxes').onchange=e=>this.settings.set('enemyHitboxes',e.target.checked);
     document.querySelector('#player-prediction').onchange=e=>this.settings.set('playerPrediction',e.target.checked);
     document.querySelector('#enemy-prediction').onchange=e=>this.settings.set('enemyPrediction',e.target.checked);
     document.querySelector('#sound-setting').onchange=e=>{this.settings.set('sound',e.target.checked);this.audio.enabled=e.target.checked;if(e.target.checked)this.audio.unlock();};

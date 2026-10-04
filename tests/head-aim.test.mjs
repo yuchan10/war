@@ -103,7 +103,7 @@ test('renderer draws a skull only while hovering a visible head',()=>{
   const strokes=[],ctx=new Proxy({stroke(){strokes.push(this.strokeStyle);}},{get:(o,k)=>k in o?o[k]:()=>{}});
   const layer={getContext:()=>ctx},w=scene(),e=w.enemies[0];
   const r=Object.assign(Object.create(Renderer.prototype),{ctx,settings:{values:{}},background:{},backgroundStage:w.stage,entityLayer:layer,sightMask:layer,drawFog(){}});
-  r.draw(w,idle(local(e,1,-4)));assert.equal(strokes.at(-1),'#22261f');
+  r.draw(w,idle(local(e,1,-4)));assert.equal(strokes.at(-1),'#f3eedb');
   r.draw(w,idle({x:700,y:500}));assert.equal(strokes.at(-1),'#e5e4ceaa');
   w.walls=[{x:200,y:250,w:20,h:100}];r.draw(w,idle(local(e,1,-4)));assert.equal(strokes.at(-1),'#e5e4ceaa');
 });

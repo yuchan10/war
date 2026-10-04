@@ -37,11 +37,18 @@ export function drawDamageScreen(c,player,time,width,height){
 }
 
 export function drawSkull(c,x,y){
-  c.save();c.translate(x,y);c.lineWidth=2;c.strokeStyle='#22261f';c.fillStyle='#f3eedb';
-  c.beginPath();c.ellipse(0,-2,7,7,0,0,Math.PI*2);c.fill();c.stroke();
-  c.fillRect(-4,3,8,6);c.strokeRect(-4,3,8,6);
-  c.fillStyle='#22261f';
-  for(const eye of [-3,3]){c.beginPath();c.ellipse(eye,-2,2,2.5,0,0,Math.PI*2);c.fill();}
-  c.beginPath();c.moveTo(0,1);c.lineTo(-1.5,3.5);c.lineTo(1.5,3.5);c.closePath();c.fill();
-  c.lineWidth=1;c.beginPath();for(const tooth of [-1.5,1.5]){c.moveTo(tooth,5);c.lineTo(tooth,9);}c.stroke();c.restore();
+  c.save();c.translate(x,y);c.lineCap='round';c.lineJoin='round';
+  c.beginPath();
+  c.moveTo(-4,5);c.lineTo(-7,3);c.lineTo(-8,-2);
+  c.bezierCurveTo(-8,-11,8,-11,8,-2);
+  c.lineTo(7,3);c.lineTo(4,5);c.lineTo(4,8);c.lineTo(-4,8);c.closePath();
+  // Angled eye sockets and separated teeth, drawn entirely with fine outlines.
+  for(const side of [-1,1]){
+    c.moveTo(side*2,-2);c.lineTo(side*6,-3);c.lineTo(side*5,1);c.lineTo(side*2,0);c.closePath();
+  }
+  c.moveTo(-1,3);c.lineTo(0,1.5);c.lineTo(1,3);
+  for(const tooth of [-1.5,1.5]){c.moveTo(tooth,5.5);c.lineTo(tooth,8);}
+  // A narrow dark under-stroke keeps the ivory line readable over bright terrain.
+  c.strokeStyle='#101810cc';c.lineWidth=3.4;c.stroke();
+  c.strokeStyle='#f3eedb';c.lineWidth=1.3;c.stroke();c.restore();
 }

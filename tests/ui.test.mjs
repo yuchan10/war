@@ -53,6 +53,18 @@ test('settings restores the start menu and return button resumes combat',t=>{
   assert.equal(query('.combat-hud').classList.contains('hidden'),false);
 });
 
+test('Escape settings toggle enemy hitboxes and restore the saved choice',t=>{
+ const {ui,world,query,escape}=setup(t);ui.start();escape();
+ assert.match(query('#overlay').innerHTML,/적 히트박스 보기/);
+ assert.equal(ui.settings.values.enemyHitboxes,false);
+ let saved;ui.settings.storage={setItem(key,value){saved=value;},getItem(){return saved;}};
+ query('#enemy-hitboxes').onchange({target:{checked:true}});
+ assert.equal(new Settings(ui.settings.storage).values.enemyHitboxes,true);
+ escape();assert.equal(world.state,'playing');escape();
+ assert.match(query('#overlay').innerHTML,/id="enemy-hitboxes" checked/);
+ query('#enemy-hitboxes').onchange({target:{checked:false}});assert.equal(ui.settings.values.enemyHitboxes,false);
+});
+
 test('intro skip starts search at the hiding place with a knife and no rifle',t=>{
  const {ui,world,input,query}=setup(t);ui.update();assert.ok(query('#skip-prologue').classList.contains('hidden'));
  ui.start();const spawn={x:world.player.x,y:world.player.y};assert.equal(query('#skip-prologue').classList.contains('hidden'),false);

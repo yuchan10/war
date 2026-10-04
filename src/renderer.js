@@ -1,4 +1,5 @@
 import { headAimTarget } from './head-aim.js';
+import { drawEnemyHitboxes } from './hitbox-overlay.js';
 import { drawDamageScreen,drawSkull } from './damage-screen.js';
 import { drawEnemyIntent } from './enemy-intent.js';
 import { drawTerrain, drawLandmark } from './terrain.js';
@@ -126,6 +127,7 @@ export class Renderer {
 
     w.effects.draw(c);
     w.pickups.draw(c,()=>true,p,w.weapon,w.time);
+    if(s.enemyHitboxes)drawEnemyHitboxes(c,w);
     endSight();
     // Brief establishing shot shows both the concealed player and the firing line.
     // Normal player visibility resumes as soon as escape control is returned.

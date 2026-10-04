@@ -24,18 +24,24 @@ function intersect(a,b,box,r){
   let t1=(min-a[key])/d,t2=(max-a[key])/d;if(t1>t2)[t1,t2]=[t2,t1];lo=Math.max(lo,t1);hi=Math.min(hi,t2);if(lo>hi)return null;
  }return lo;
 }
+const BODY_BOXES=[['center',[-13,-6,10,6]],['leftLeg',[-17,-6,-13,0]],['rightLeg',[-17,0,-13,6]],['leftArm',[-5,-16,20,-7]],['rightArm',[-5,7,20,16]]];
+export function activeBodyBoxes(e,upperBodyOnly=false){
+ if(e.dead)return [];
+ return BODY_BOXES.filter(([region])=>{
+  const part=PARTS[region];
+  if(upperBodyOnly&&part?.kind==='leg')return false;
+  const missing=part?.kind==='arm'?e.missingArms:part?.kind==='leg'?e.missingLegs:null;
+  return !e.body?.[region]?.severed&&!missing?.includes(part.side);
+ });
+}
 export function bodyHit(e,b){
  if(e.dead)return null;
  const angle=e.aimRemaining>0||e.burstLeft>0?e.aimAngle??e.angle:e.angle;
  const c=Math.cos(angle||0),s=Math.sin(angle||0);
  const local=(x,y)=>({x:(x-e.x)*c+(y-e.y)*s,y:-(x-e.x)*s+(y-e.y)*c});
  const a=local(b.px,b.py),z=local(b.x,b.y),r=Math.min(b.radius??0,2);
- // The rear leg lanes must disappear independently when a leg is severed.
- const boxes=[['center',[-13,-6,10,6]],['leftLeg',[-17,-6,-13,0]],['rightLeg',[-17,0,-13,6]],['leftArm',[-5,-16,20,-7]],['rightArm',[-5,7,20,16]]];
  let hit=null;
- for(const [region,box] of boxes){
-  if(b.upperBodyOnly&&PARTS[region]?.kind==='leg')continue;
-  if(e.body?.[region]?.severed||(region==='leftArm'&&e.missingArms?.includes(-1))||(region==='rightArm'&&e.missingArms?.includes(1))||(region==='leftLeg'&&e.missingLegs?.includes(-1))||(region==='rightLeg'&&e.missingLegs?.includes(1)))continue;
+ for(const [region,box] of activeBodyBoxes(e,b.upperBodyOnly)){
   const t=intersect(a,z,box,r);if(t===null||(hit&&hit.t<=t))continue;
   hit={region,t,localY:a.y+(z.y-a.y)*t,x:b.px+(b.x-b.px)*t,y:b.py+(b.y-b.py)*t};
  }return hit;
