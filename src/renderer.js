@@ -127,8 +127,8 @@ export class Renderer {
     for(const q of w.particles.items){if(!q.active||!visiblePoint(p,q,w.walls))continue;c.globalAlpha=Math.max(0,q.life/q.maxLife);c.fillStyle='#c4b999';c.fillRect(q.x,q.y,q.size,q.size);}c.globalAlpha=1;
 
     w.effects.draw(c,e=>e!==w.playerCorpse);
-    drawGrenades(c,w.grenades||[]);
-    w.pickups.draw(c,()=>true,p,w.weapon,w.time);
+    drawGrenades(c,w.grenades||[],{groundOnly:true});
+    w.pickups.draw(c,()=>true,p,w.weapon,w.time,w);
     if(s.enemyHitboxes)drawEnemyHitboxes(c,w);
     endSight();
     // Brief establishing shot shows both the concealed player and the firing line.
@@ -141,6 +141,7 @@ export class Renderer {
       surface.forEach((point,i)=>i?c.lineTo(point.x,point.y):c.moveTo(point.x,point.y));
       c.closePath();c.clip();this.wall(c,wall);c.restore();
     }
+    drawGrenades(c,w.grenades||[],{airborneOnly:true});
     c.save();if(!p.dead)drawSoldier(c,p,true,w.recoil);
     else if(w.playerCorpse)w.effects.draw(c,e=>e===w.playerCorpse);c.restore();
     w.pickups.drawProgress(c,p);
@@ -149,7 +150,7 @@ export class Renderer {
     if(w.state==='playing'||w.state==='settings'||w.state==='dead')drawDamageScreen(c,p,w.time,C.width,C.height);
     if(input&&w.state==='playing'){
       c.save();const {x,y}=input.mouse;
-      if(headAimTarget(w,input.mouse))drawSkull(c,x,y);
+      if(!w.primedGrenade&&headAimTarget(w,input.mouse))drawSkull(c,x,y);
       else{
       c.strokeStyle=w.effects.hitMarker>0?'#f8e8b9':'#e5e4ceaa';c.lineWidth=w.effects.hitMarker>0?2:1;c.beginPath();
       for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.moveTo(x+dx*4,y+dy*4);c.lineTo(x+dx*9,y+dy*9);}c.stroke();

@@ -20,8 +20,8 @@ document.querySelector('#freeze').onclick=()=>replay(true);
 function grenadeDemo(freeze){
  audio.unlock();w.start();w.walls=[];w.enemies=[];Object.assign(w.player,{x:450,y:360,angle:0});
  w.spawnEnemy('assault',730,360);Object.assign(w.enemies[0],{born:0,angle:Math.PI,speed:0,timer:100});
- w.throwGrenade({x:730,y:360});frozen=freeze;
- if(freeze){updateGrenades(w.grenades,1.2,w.walls,g=>w.explodeGrenade(g));w.effects.update(.12,w.walls);}
+ w.primeGrenade();w.throwGrenade({x:730,y:360});frozen=freeze;
+ if(freeze){updateGrenades(w.grenades,3,w.walls,g=>w.explodeGrenade(g));w.effects.update(.12,w.walls);}
  ui.lastState='';ui.update();
 }
 document.querySelector('#grenade-demo').onclick=()=>grenadeDemo(false);

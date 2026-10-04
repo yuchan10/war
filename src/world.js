@@ -9,7 +9,7 @@ import { knifeTargets, updateKnife, knifeContact, KNIFE_DAMAGE } from './knife.j
 import { playerMoveSpeed } from './player-movement.js';
 import { Prologue, PROLOGUE_STAGE } from './prologue.js';
 import { Pickups } from './pickups.js';
-import { applyInjury, injuryMoveScale, initBody, bodyHit, tickWounds } from './injury.js';
+import { applyInjury, injuryMoveScale, initBody, bodyHit, tickWounds,PARTS } from './injury.js';
 import { skillStats } from './enemy-skill.js';
 import { updateFootsteps } from './footsteps.js';
 import { animateStride } from './soldier.js';
@@ -39,7 +39,7 @@ export class World {
   }
   reset() {
     this.deathRemaining=0;this.playerCorpse=null;this.audio.setDeathEffect?.(false);
-    this.grenades=[];this.grenadeAmmo=C.grenade.count;this.grenadeCooldown=0;
+    this.grenades=[];this.grenadeAmmo=C.grenade.count;this.grenadeCooldown=0;this.primedGrenade=null;this.primaryHeld=false;this.grenadeTriggerLock=false;this.audio.stopRinging?.();
     this.battlefieldHistory=[];
     this.prologue=null;
     this.walls=STAGES[0].walls;
@@ -95,7 +95,7 @@ export class World {
     if(index<0)this.battlefieldHistory.push(record);else this.battlefieldHistory[index]=record;
   }
   nextStage() {
-    this.grenades=[];this.grenadeAmmo=C.grenade.count;this.grenadeCooldown=0;
+    this.grenades=this.primedGrenade?[this.primedGrenade]:[];this.grenadeCooldown=0;
     if(this.wave>0||this.prologue)this.archiveBattlefield();
     this.prologue=null;
     this.wave++;
@@ -154,7 +154,7 @@ export class World {
     else if(result.damage>0){
       if(result.weapon==='knife')this.effects.knifeImpact(x,y,angle,this.walls);
       else this.effects.impact(x,y,angle,this.walls,e!==this.player);
-      if(result.detached){if(result.part==='head')this.effects.detachHead(e,angle);else this.effects.detach(e,result.kind,angle);}
+      if(result.detached){if(result.part==='head')this.effects.detachHead(e,angle);else this.effects.detach(e,result.kind,angle,result.weapon==='grenade'?3:1);}
       this.audio.play(result.weapon==='knife'?'knifeHit':'impact');
     }
   }
@@ -168,31 +168,51 @@ export class World {
   checkPlayerDeath(){
     const p=this.player;if(!p.dead||p.deathHandled)return;
     p.deathHandled=true;p.knifeSwing=0;p.knifeHeadTarget=null;this.state='dead';
+    if(this.primedGrenade){this.primedGrenade.held=false;this.primedGrenade.owner=null;this.primedGrenade.height=0;this.primedGrenade=null;}
     this.deathRemaining=C.death.duration;this.shake=0;
     this.playerCorpse=this.effects.fallen(p);this.playerCorpse.fallDuration=C.death.duration*C.death.timeScale;
     this.audio.setDeathEffect?.(true);this.audio.play('dead');
   }
-  throwGrenade(target){
+  primeGrenade(){
     const p=this.player;
-    if(this.state!=='playing'||p.dead||!p.hasRifle||p.armsDisabled||this.grenadeAmmo<=0||this.grenadeCooldown>0)return false;
-    this.grenades.push(createGrenade(p,target));this.grenadeAmmo--;this.grenadeCooldown=C.grenade.cooldown;
+    if(this.state!=='playing'||p.dead||!p.hasRifle||p.armsDisabled||this.primedGrenade||this.grenadeAmmo<=0||this.grenadeCooldown>0)return false;
+    this.primedGrenade={x:p.x,y:p.y,height:8,held:true,owner:p,fuse:C.grenade.fuse,age:0,active:true};
+    this.grenades.push(this.primedGrenade);this.grenadeAmmo--;p.knifeSwing=0;p.knifeHeadTarget=null;
+    this.audio.play('pin');return true;
+  }
+  throwGrenade(target){
+    const p=this.player,g=this.primedGrenade;
+    if(!g||this.state!=='playing'||p.dead||p.armsDisabled)return false;
+    const fuse=g.fuse;Object.assign(g,createGrenade(p,target,this.walls),{fuse,owner:null});
+    this.primedGrenade=null;this.grenadeCooldown=C.grenade.cooldown;this.grenadeTriggerLock=true;
     this.audio.play('knife');return true;
   }
   explodeGrenade(g,damageEnabled=true){
     this.effects.add('explosion',g.x,g.y,0,'#efc991',.5,C.grenade.radius,0);
-    this.burst(g.x,g.y,'#c5ac80',26);this.shake=Math.max(this.shake,6);
+    this.burst(g.x,g.y,'#c5ac80',36);this.shake=Math.max(this.shake,18);
     this.audio.play('explosion',{dx:g.x-this.player.x,dy:g.y-this.player.y});
     this.emitPlayerSound('gunshot',g.x,g.y);
+    if(this.primedGrenade===g)this.primedGrenade=null;
     if(!damageEnabled)return;
+    const hearingDistance=Math.hypot(this.player.x-g.x,this.player.y-g.y);
+    if(hearingDistance<C.grenade.ringRadius)this.audio.ringExplosion?.(1-hearingDistance/C.grenade.ringRadius);
     for(const e of [...this.enemies,this.player]){
       if(e!==this.player&&(e.born??0)>0)continue;
       const damage=blastDamage(g,e,this.walls);if(damage<=0)continue;
-      const hit={region:'torso',weapon:'grenade',x:e.x,y:e.y},direction={vx:e.x-g.x,vy:e.y-g.y};
-      // Blast overpressure can carry through a destroyed vest; existing bullet rules stay unchanged.
-      const armor=e.body.torso.armor;
-      if(armor>0)this.woundEffect(e,applyInjury(e,Math.min(damage,armor),hit,this.time,this.random),direction,hit);
-      if(damage>armor)this.woundEffect(e,applyInjury(e,damage-armor,hit,this.time,this.random),direction,hit);
-      applyKnockback(e,direction.vx,direction.vy,160*damage/C.grenade.damage);
+      const distance=Math.hypot(e.x-g.x,e.y-g.y,g.height||0),close=distance<=C.grenade.killRadius;
+      const direction={vx:e.x-g.x||.01,vy:e.y-g.y};
+      applyKnockback(e,direction.vx,direction.vy,400+400*damage/C.grenade.damage);
+      e.blastVX=e.knockX;e.blastVY=e.knockY;
+      const limbs=['leftArm','rightArm','leftLeg','rightLeg'].filter(key=>!e.body[key].severed);
+      const count=close?limbs.length:distance<C.grenade.radius*.7?2:1;
+      const parts=[];
+      for(let i=0;i<count&&limbs.length;i++)parts.push(limbs.splice(Math.min(limbs.length-1,Math.floor(this.random()*limbs.length)),1)[0]);
+      if(close)parts.push('torso');
+      for(const part of parts){
+        const hit={region:part,weapon:'grenade',x:e.x,y:e.y},armor=e.body[part].armor;
+        if(armor>0)this.woundEffect(e,applyInjury(e,armor,hit,this.time,this.random),direction,hit);
+        this.woundEffect(e,applyInjury(e,PARTS[part].threshold,hit,this.time,this.random),direction,hit);
+      }
       if(e===this.player){this.feedback.damaged();e.hitFlash=.35;this.checkPlayerDeath();}
       else if(e.dead)this.killEnemy(e);
     }
@@ -238,7 +258,13 @@ export class World {
     p.hitFlash=Math.max(0,(p.hitFlash||0)-dt);
     this.updateWounds(p,dt);if(p.dead)return;
     this.grenadeCooldown=Math.max(0,this.grenadeCooldown-dt);
-    if(input.consumeGrenade?.())this.throwGrenade(input.mouse);
+    const primaryPressed=input.mouse.down&&!this.primaryHeld;this.primaryHeld=!!input.mouse.down;
+    if(!input.mouse.down)this.grenadeTriggerLock=false;
+    const armedBefore=!!this.primedGrenade;
+    if(input.consumeGrenade?.())this.primeGrenade();
+    const grenadeAction=armedBefore||!!this.primedGrenade||this.grenadeTriggerLock;
+    if(armedBefore&&primaryPressed)this.throwGrenade(input.mouse);
+    if(this.primedGrenade&&p.armsDisabled){this.primedGrenade.held=false;this.primedGrenade.owner=null;this.primedGrenade.height=0;this.primedGrenade=null;}
     updateGrenades(this.grenades,dt,this.walls,g=>this.explodeGrenade(g));
     this.grenades=this.grenades.filter(g=>g.active);if(p.dead)return;
     this.feedback.update(dt);
@@ -257,16 +283,17 @@ export class World {
     const changingInterrupted=!!(mv.x||mv.y||input.mouse.down||!input.lootHeld?.());
     if(input.consumeLoot?.()&&!changingInterrupted&&!this.pickups.changing){
       const rounds=this.pickups.collectAmmo(p,this.walls,this.weapon);
+      const grenades=this.pickups.collectGrenades(p,this.walls,this);
       if(this.pickups.start(p,this.walls)){p.knifeSwing=0;this.feedback.show('부위당 2.5초 · E 유지 · 떼거나 움직이면 중단');}
-      else this.feedback.show(rounds?`탄약 ${rounds}발 획득`:'시체 위에서 E · 획득할 장비 필요');
+      else this.feedback.show(grenades?`수류탄 ${grenades}개 획득${rounds?` · 탄약 ${rounds}발`:''}`:rounds?`탄약 ${rounds}발 획득`:'시체 위에서 E · 획득할 장비 필요');
     }
     if(this.pickups.update(p,this.walls,dt,changingInterrupted))this.audio.play('reloadReady');
-    if(updateKnife(p,dt,input.mouse.down,(type)=>this.audio.play(type),headAimTarget(this,input.mouse))){
+    if(updateKnife(p,dt,input.mouse.down&&!grenadeAction,(type)=>this.audio.play(type),headAimTarget(this,input.mouse))){
       for(const e of knifeTargets(p,this.enemies.filter(e=>e.born<=0),this.walls)){
         this.strikeKnife(e);if(e.dead)this.killEnemy(e);
       }
     }
-    if(!p.armsDisabled&&!p.knifeEquipped&&input.mouse.down&&p.shotTimer<=0&&this.weapon.consume()) {
+    if(!grenadeAction&&!p.armsDisabled&&!p.knifeEquipped&&input.mouse.down&&p.shotTimer<=0&&this.weapon.consume()) {
       const boosted=false;
       this.shoot(p.x,p.y,shotAngle(p,p.angle,this.random),false,p.damage*(boosted?4:1),C.weapon.speed,boosted,C.weapon.bulletRange,headAimTarget(this,input.mouse));
       p.shotTimer=p.fireInterval;

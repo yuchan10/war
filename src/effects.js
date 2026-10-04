@@ -55,18 +55,19 @@ export class Effects {
   }
   fallen(soldier,fallAngle=null) {
     return this.persist({kind:'body',x:soldier.x,y:soldier.y,angle:fallAngle??soldier.angle+1.1,directedFall:fallAngle!==null,color:soldier.allied?'#7e8e63':'#897451',life:24,duration:24,size:1,
+      radius:12,blastVX:soldier.blastVX!==undefined?(soldier.knockX||0):0,blastVY:soldier.blastVY!==undefined?(soldier.knockY||0):0,
       torsoMarks:(soldier.torsoMarks||[]).map(mark=>({...mark})),
       armor:Object.fromEntries(Object.entries(soldier.body||{}).map(([k,v])=>[k,v.severed?0:v.armor])),
       restrained:!!soldier.restrained,hooded:!!soldier.hooded,
       missingArm:soldier.missingArm||0,missingLeg:soldier.missingLeg||0,missingArms:[...(soldier.missingArms||[])],missingLegs:[...(soldier.missingLegs||[])],headDestroyed:!!soldier.headDestroyed,unarmed:!!(soldier.armsDisabled||soldier.unarmed||soldier.rifleDropped)});
   }
-  detach(soldier,part,impactAngle){
+  detach(soldier,part,impactAngle,strength=1){
     const side=part==='arm'?soldier.missingArm:soldier.missingLeg;
     const aim=soldier.aimAngle??soldier.angle;
     const a=aim+side*Math.PI/2;
     const spawn=(kind,offset,speed,angle)=>this.persist({kind,x:soldier.x+Math.cos(a)*offset,y:soldier.y+Math.sin(a)*offset,
       angle,color:'#ad936a',life:24,duration:24,size:1,radius:3,
-      vx:Math.cos(impactAngle)*speed+Math.cos(a)*55,vy:Math.sin(impactAngle)*speed+Math.sin(a)*55,spin:side*7});
+      vx:(Math.cos(impactAngle)*speed+Math.cos(a)*55)*strength,vy:(Math.sin(impactAngle)*speed+Math.sin(a)*55)*strength,spin:side*7});
     spawn(part==='arm'?'droppedArm':'droppedLeg',10,100,aim+side*.7);
     if(part==='arm'&&soldier.armsDisabled&&!soldier.rifleDropped){spawn('droppedRifle',16,145,aim);soldier.rifleDropped=true;}
   }
@@ -79,7 +80,11 @@ export class Effects {
     this.blood.update(dt);
     for (const e of this.items.items) {
       if (!e.active) continue;
-      if(e.persistent)e.age+=dt;else e.life-=dt;
+        if(e.persistent)e.age+=dt;else e.life-=dt;
+        if(e.kind==='body'&&(e.blastVX||e.blastVY)){
+          const decay=Math.exp(-6*dt),travel=(1-decay)/6;
+          moveBody(e,e.blastVX*travel,e.blastVY*travel,walls);e.blastVX*=decay;e.blastVY*=decay;
+        }
       if(e.kind.startsWith('dropped')){
         const decay=Math.exp(-7*dt),travel=(1-decay)/7;
         moveBody(e,e.vx*travel,e.vy*travel,walls);e.angle+=e.spin*travel;

@@ -1,8 +1,8 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>전초선</title><link rel="stylesheet" href="style.css"></head>
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>전초선</title><link rel="stylesheet" href="../style.css"></head>
 <body><main><div class="arena"><canvas id="game" width="1200" height="720" aria-label="WASD 이동, 마우스 공격, 휠로 칼과 총 전환, R 장전, E 방어구 탈취, G 수류탄 안전핀 제거, 왼쪽 클릭 투척"></canvas>
 <div class="controls hidden"><button id="settings" aria-label="설정" title="설정 (Esc)">⚙</button></div>
 <button id="skip-prologue" class="skip-prologue hidden" title="수송차 뒤 은신 위치에서 수색 장면 시작">연출 건너뛰기 ▸</button>
 <div id="body-panel" class="body-panel hidden"><div id="body-status"></div></div>
 <div class="combat-hud hidden"><div id="loot-hint"></div><div class="ammo-block"><span id="grenade-ammo" style="display:block;font-size:12px;white-space:nowrap;margin-bottom:8px"></span><span id="ammo">24 / 72</span><div class="reload-track"><i id="reload-progress"></i></div></div></div>
 <div id="story-caption" class="story-caption hidden" role="status" aria-live="polite"></div><section id="overlay" class="overlay start-screen"><button id="start" class="primary">작전 시작</button></section>
-</div></main><script type="module" src="src/main.js"></script></body></html>
+</div></main><script type="module" src="grenade-preview.js"></script><nav style="position:fixed;top:12px;left:12px;z-index:20"><button id="lab-reset">시험장 초기화</button><button id="lab-air">포물선 정지</button><button id="lab-blast">폭발 정지</button></nav></body></html>

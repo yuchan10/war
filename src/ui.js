@@ -42,9 +42,9 @@ export class UI {
     document.querySelector('#skip-prologue').classList.toggle('hidden',w.state!=='playing'||w.prologue?.phase!=='witness');
     document.querySelector('#body-status').innerHTML=bodyStatusMarkup(p,w.time);
     document.querySelector('#body-panel').classList.toggle('hidden',w.state!=='playing');
-    document.querySelector('#loot-hint').textContent=w.pickups.changing?'E 누른 채 정지 · 놓으면 교체 취소':w.pickups.available(p,w.walls,gun)?'E · 탄약 획득 / 길게 눌러 방어구 교체 (부위당 2.5초)':'';
+    document.querySelector('#loot-hint').textContent=w.primedGrenade?'안전핀 제거됨 · 왼쪽 클릭으로 투척':w.pickups.changing?'E 누른 채 정지 · 놓으면 교체 취소':w.pickups.available(p,w.walls,gun,w)?'E · 탄약·수류탄 획득 / 길게 눌러 방어구 교체 (부위당 2.5초)':'';
     document.querySelector('#ammo').textContent=p.armsDisabled?'사격 불가':p.knifeEquipped?'전투용 칼':p.unarmed?'비무장':`${String(gun.ammo).padStart(2,'0')} / ${gun.reserve}`;
-    const grenades=document.querySelector('#grenade-ammo');if(grenades)grenades.textContent=p.hasRifle?`G · 수류탄 ${w.grenadeAmmo}`:'';
+    const grenades=document.querySelector('#grenade-ammo');if(grenades){grenades.textContent=p.hasRifle?(w.primedGrenade?`클릭 투척 · ${w.primedGrenade.fuse.toFixed(1)}초`:`G · 수류탄 ${w.grenadeAmmo}/3`):'';grenades.style.color=w.primedGrenade?'#ffb181':'#ded8a2';}
     const caption=document.querySelector('#story-caption');
     caption.textContent=w.state==='playing'?(w.prologue?w.prologue.caption:(w.time-w.stageStartedAt<7?`${w.stage.name} · ${w.stage.strategy}`:'')):'';
     caption.classList.toggle('hidden',!caption.textContent);

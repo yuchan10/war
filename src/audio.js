@@ -13,7 +13,7 @@ export class Audio {
     this.rifleData=fetchRifleSamples().catch(error=>{console.error(error);return null;});
   }
   get enabled(){return this._enabled;}
-  set enabled(value){this._enabled=value;if(this.master)this.master.gain.setTargetAtTime(value?.65:0,this.context.currentTime,.035);}
+  set enabled(value){this._enabled=value;if(this.master)this.master.gain.setTargetAtTime(value?.65:0,this.context.currentTime,.035);if(this.ringingBus)this.ringingBus.gain.setTargetAtTime(value?.65:0,this.context.currentTime,.035);}
   unlock(){
     if(!this.context){
       const c=this.context=new(window.AudioContext||window.webkitAudioContext)();
@@ -26,6 +26,7 @@ export class Audio {
       this.deathFilter.frequency.value=this.deathEffect?650:22000;
       this.deathGain=c.createGain();this.deathGain.gain.value=this.deathEffect?.28:1;
       this.master.connect(this.deathFilter);this.deathFilter.connect(this.deathGain);this.deathGain.connect(limiter);limiter.connect(c.destination);
+      this.ringingBus=c.createGain();this.ringingBus.gain.value=this.enabled?.65:0;this.ringingBus.connect(limiter);
       this.noise=c.createBuffer(1,c.sampleRate*.7,c.sampleRate);
       const data=this.noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
       this.atmosphere=c.createGain();this.atmosphere.gain.value=0;this.atmosphere.connect(this.master);
@@ -47,6 +48,18 @@ export class Audio {
     const now=this.context.currentTime;
     this.deathFilter.frequency.setTargetAtTime(active?650:22000,now,active?.035:.08);
     this.deathGain.gain.setTargetAtTime(active?.28:1,now,active?.06:.08);
+  }
+  stopRinging(){
+    if(!this.ringing)return;
+    const {osc,gain}=this.ringing;gain.gain.cancelScheduledValues(this.context.currentTime);gain.gain.setTargetAtTime(0,this.context.currentTime,.025);osc.stop(this.context.currentTime+.1);this.ringing=null;
+  }
+  ringExplosion(strength=1){
+    if(!this.enabled||!this.context||this.context.state!=='running'||!this.ringingBus)return;
+    this.stopRinging();const c=this.context,now=c.currentTime,s=Math.max(0,Math.min(1,strength)),duration=1.5+s*2.5;
+    const osc=c.createOscillator(),gain=c.createGain();osc.type='sine';osc.frequency.setValueAtTime(2200,now);
+    gain.gain.setValueAtTime(.0001,now);gain.gain.linearRampToValueAtTime(.012+.023*s,now+.025);gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+    osc.connect(gain);gain.connect(this.ringingBus);const current=this.ringing={osc,gain};
+    osc.onended=()=>{osc.disconnect();gain.disconnect();if(this.ringing===current)this.ringing=null;};osc.start();osc.stop(now+duration+.05);
   }
   applyAmbience(){if(this.atmosphere)this.atmosphere.gain.setTargetAtTime(this.sceneActive&&this.ambienceWanted?.065:0,this.context.currentTime,.2);}
   play(type,position={}){
@@ -89,7 +102,7 @@ export class Audio {
       noise.connect(filter);filter.connect(envelope);envelope.connect(pan);noise.start();noise.stop(now+.2);
       noise.onended=()=>{noise.disconnect();filter.disconnect();envelope.disconnect();};
     }
-    const sounds={heal:[420,720,.16,.04],footstep:[95,40,.09,.065],enemyFootstep:[85,35,.1,.065],enemyShot:[130,38,.24,.16],shot:[180,45,.12,.12],wallHit:[220,60,.05,.025],impact:[180,65,.075,.05],hit:[90,35,.15,.07],dead:[75,30,.16,.04],wave:[180,220,.2,.018]};
+    const sounds={pin:[1800,750,.09,.04],heal:[420,720,.16,.04],footstep:[95,40,.09,.065],enemyFootstep:[85,35,.1,.065],enemyShot:[130,38,.24,.16],shot:[180,45,.12,.12],wallHit:[220,60,.05,.025],impact:[180,65,.075,.05],hit:[90,35,.15,.07],dead:[75,30,.16,.04],wave:[180,220,.2,.018]};
     const [from,to,duration,volume]=sounds[type]||sounds.impact;
     const oscillator=c.createOscillator(),gain=c.createGain();oscillator.type=shot?'triangle':'sine';
     oscillator.frequency.setValueAtTime(from,now);oscillator.frequency.exponentialRampToValueAtTime(to,now+duration);
