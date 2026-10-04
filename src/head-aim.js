@@ -13,7 +13,9 @@ export function pointsAtHead(e,point){
   }
   const face=(x-4)**2+(y+3)**2<=36;
   const helmet=(!e.body||e.body.head.armor>0)&&((x-1)/7.5)**2+((y+4)/7)**2<=1;
-  return face||helmet;
+  // Include the neck behind the face without extending into the outer arm lanes.
+  const neck=((x+4)/6)**2+((y-1)/5)**2<=1;
+  return face||helmet||neck;
 }
 
 export function headAimTarget(world,point){

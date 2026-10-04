@@ -235,7 +235,7 @@ export class World {
       const motion=updateTacticalEnemy(e,dt,this.walls,this.enemies,(...args)=>this.shoot(...args),this.random);
       let vx=motion.x,vy=motion.y;
       const oldEX=e.x,oldEY=e.y;
-      const injuryScale=injuryMoveScale(e);vx*=injuryScale;vy*=injuryScale;
+      const injuryScale=injuryMoveScale(e)*C.movementScale;vx*=injuryScale;vy*=injuryScale;
       moveBody(e,vx*dt,vy*dt,this.walls);
       updateFootsteps(e,oldEX,oldEY,p,(...args)=>this.audio.play(...args));
       animateStride(e,oldEX,oldEY);

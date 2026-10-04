@@ -1,4 +1,5 @@
 export const CONFIG= {
+  movementScale:.8,
   width:1200,height:720,step:1/120,maxFrame:.1,particleLimit:420,bulletLimit:600,arena: {
     left:42,right:1158,top:62,bottom:658
   },player: {

@@ -81,7 +81,7 @@ export class Prologue {
     if(this.phase==='witness'){
       for(const guard of this.guards){
         const oldY=guard.y;
-        guard.y=195+65*Math.min(1,this.elapsed*.7/2.5);
+        guard.y=195+65*Math.min(1,this.elapsed*.7/2.5*CONFIG.movementScale);
         animateStride(guard,guard.x,oldY);
         const ally=this.allies[this.guards.indexOf(guard)];
         guard.angle=Math.atan2(ally.y+1-guard.y,ally.x+4-guard.x);
@@ -97,7 +97,7 @@ export class Prologue {
       // Keep the establishing view until the officer has walked completely off screen.
       if(this.elapsed>=8.2){
         const officer=this.officer,oldX=officer.x;
-        officer.angle=0;officer.x=Math.min(1240,officer.x+70*dt);
+        officer.angle=0;officer.x=Math.min(1240,officer.x+70*dt*CONFIG.movementScale);
         animateStride(officer,oldX,officer.y);
         updateFootsteps(officer,oldX,officer.y,p,(...args)=>w.audio.play(...args));
         officer.departed=officer.x>=1240;
@@ -111,7 +111,7 @@ export class Prologue {
         tickWounds(g,dt,(part,size)=>w.effects.bleed(g,part,size,w.walls));
         if(g.dead){this.defeatGuard(w,g);continue;}
         g.timer-=dt;
-        const oldX=g.x,oldY=g.y,motion=updateTacticalEnemy(g,dt,w.walls,this.guards,(...args)=>w.shoot(...args),w.random),scale=injuryMoveScale(g);
+        const oldX=g.x,oldY=g.y,motion=updateTacticalEnemy(g,dt,w.walls,this.guards,(...args)=>w.shoot(...args),w.random),scale=injuryMoveScale(g)*CONFIG.movementScale;
         moveBody(g,motion.x*scale*dt,motion.y*scale*dt,w.walls);
         animateStride(g,oldX,oldY);updateFootsteps(g,oldX,oldY,p,(...args)=>w.audio.play(...args));
       }

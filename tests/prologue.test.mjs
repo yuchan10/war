@@ -36,7 +36,7 @@ test('playable opening hides unarmed, pauses and executes each story beat once',
 });
 test('finishing an exposed wounded searcher with a knife starts normal combat',()=>{
  const w=new World({play(){}});w.startPrologue();
- advance(w,15,{...idle,consumeInteract:()=>true});assert.equal(w.prologue.phase,'search');assert.ok(w.player.unarmed);
+ advance(w,16,{...idle,consumeInteract:()=>true});assert.equal(w.prologue.phase,'search');assert.ok(w.player.unarmed);
  const guard=w.prologue.guards[0];Object.assign(w.player,{x:guard.x,y:guard.y+30});
  w.update(1/120,idle);
  assert.equal(w.state,'playing');assert.equal(w.player.wasHit,undefined);assert.ok(w.player.knifeEquipped);

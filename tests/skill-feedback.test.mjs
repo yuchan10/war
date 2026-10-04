@@ -23,7 +23,7 @@ test('space input cannot dash and ordinary movement has fixed speed',()=>{
   const w=new World({play(){}});w.start();
   const x=w.player.x;
   w.update(CONFIG.step,{mouse:{x:900,y:360,down:false},movement:()=>({x:1,y:0}),consumeDash:()=>true});
-  assert.ok(Math.abs(w.player.x-x-CONFIG.player.speed*CONFIG.step)<1e-6);
+  assert.ok(Math.abs(w.player.x-x-CONFIG.player.speed*CONFIG.movementScale*CONFIG.step)<1e-6);
   assert.equal(w.player.dashTime,undefined);
 });
 test('enemy projectiles are stopped by cover instead of bouncing into shelter',()=>{

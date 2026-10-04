@@ -26,11 +26,11 @@ test('knife movement is faster, cancels reload and preserves rifle ammunition on
   w.update(.01,{...swap,movement:()=>({x:1,y:0})});
   assert.equal(w.player.knifeEquipped,true);assert.equal(w.player.unarmed,true);
   assert.equal(w.weapon.reloading,false);assert.equal(w.weapon.ammo,5);
-  assert.ok(Math.abs(w.player.x-before-1.575)<1e-8);
-  assert.equal(playerMoveSpeed(w.player,w.weapon,true),157.5);
+  assert.ok(Math.abs(w.player.x-before-1.575*.8)<1e-8);
+  assert.ok(Math.abs(playerMoveSpeed(w.player,w.weapon,true)-157.5*.8)<1e-8);
   w.update(.01,swap);assert.equal(w.player.knifeEquipped,false);
   assert.equal(w.player.unarmed,false);assert.equal(w.weapon.ammo,5);
-  assert.equal(playerMoveSpeed(w.player,w.weapon,false),126);
+  assert.equal(playerMoveSpeed(w.player,w.weapon,false),(126*.8));
 });
 
 test('normal combat knife damages armor without shooting and rifle still fires after switching back',()=>{

@@ -8,6 +8,19 @@ import { Renderer } from '../src/renderer.js';
 
 const make=()=>{const e={x:300,y:300,angle:0,active:true,born:0};initBody(e);return e;};
 const local=(e,x,y)=>({x:e.x+x*Math.cos(e.angle)-y*Math.sin(e.angle),y:e.y+x*Math.sin(e.angle)+y*Math.cos(e.angle)});
+test('neck below the head counts as head aim without including torso or arms',()=>{
+  for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]){
+    const e=make();e.angle=angle;
+    for(const armor of [60,0]){
+      e.body.head.armor=armor;
+      assert.ok(pointsAtHead(e,local(e,-6,3)));
+      assert.ok(pointsAtHead(e,local(e,-4,5)));
+      assert.equal(pointsAtHead(e,local(e,-12,0)),false);
+      assert.equal(pointsAtHead(e,local(e,3,-12)),false);
+      assert.equal(pointsAtHead(e,local(e,3,12)),false);
+    }
+  }
+});
 test('head hover follows rotation, helmet, exposed face and crawling pose',()=>{
   for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]){
     const e=make();e.angle=angle;
