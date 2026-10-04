@@ -132,6 +132,8 @@ export class World {
   }
   strikeKnife(target){
     const p=this.player,hit=knifeContact(p,target);if(!hit)return null;
+    hit.headshot=p.knifeHeadTarget===target;
+    if(hit.headshot)hit.region='head';
     const result=applyInjury(target,KNIFE_DAMAGE,hit,this.time,this.random);
     this.woundEffect(target,result,{vx:Math.cos(p.angle),vy:Math.sin(p.angle)},hit);
     if(result.armorHit||result.damage>0)applyKnockback(target,target.x-p.x,target.y-p.y,C.knockback.knife);
@@ -155,7 +157,7 @@ export class World {
   hurt(damage,bullet=null,hit=null){
     const p=this.player;if(p.dead)return;
     const injury=applyInjury(p,damage,hit||{region:'center'},this.time,this.random);
-    this.feedback.damaged();p.hitFlash=.15;
+    this.feedback.damaged();p.hitFlash=.35;
     if(bullet)applyKnockback(p,bullet.vx,bullet.vy,C.knockback.player);
     this.woundEffect(p,injury,bullet,hit);this.checkPlayerDeath();return injury;
   }
@@ -171,7 +173,7 @@ export class World {
     if(this.state!=='playing')return;
     if(input.consumeWeaponSwitch?.()&&this.player.hasRifle){
       const p=this.player;p.knifeEquipped=!p.knifeEquipped;p.unarmed=p.knifeEquipped;
-      p.knifeSwing=0;p.knifeAttackHeld=!!input.mouse.down;
+      p.knifeSwing=0;p.knifeHeadTarget=null;p.knifeAttackHeld=!!input.mouse.down;
       if(p.knifeEquipped)this.weapon.reloadRemaining=0;
     }
     if(this.prologue&&this.prologue.phase!=='revenge'){this.prologue.update(this,dt,input);return;}
@@ -203,7 +205,7 @@ export class World {
       else this.feedback.show(rounds?`탄약 ${rounds}발 획득`:'시체 위에서 E · 획득할 장비 필요');
     }
     if(this.pickups.update(p,this.walls,dt,changingInterrupted))this.audio.play('reloadReady');
-    if(updateKnife(p,dt,input.mouse.down,(type)=>this.audio.play(type))){
+    if(updateKnife(p,dt,input.mouse.down,(type)=>this.audio.play(type),headAimTarget(this,input.mouse))){
       for(const e of knifeTargets(p,this.enemies.filter(e=>e.born<=0),this.walls)){
         this.strikeKnife(e);if(e.dead)this.killEnemy(e);
       }

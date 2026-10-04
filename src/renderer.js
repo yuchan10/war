@@ -1,4 +1,5 @@
 import { headAimTarget } from './head-aim.js';
+import { drawDamageScreen,drawSkull } from './damage-screen.js';
 import { drawEnemyIntent } from './enemy-intent.js';
 import { drawTerrain, drawLandmark } from './terrain.js';
 import { accuracySpread } from './accuracy.js';
@@ -61,6 +62,7 @@ export class Renderer {
     c.drawImage(this.fogHistory,0,0);
   }
   draw(w,input){
+    if(this.canvas?.style)this.canvas.style.cursor=w.state==='playing'?'none':'crosshair';
     let c=this.ctx;const screen=c,p=w.player,s=this.settings.values;c.clearRect(0,0,1200,720);c.save();
     const storyOverview=w.prologue?.phase==='witness';
     if(s.cameraShake&&w.shake)c.translate(Math.sin(w.time*65)*Math.min(w.shake,2)*.4,Math.cos(w.time*53)*Math.min(w.shake,2)*.4);
@@ -138,10 +140,15 @@ export class Renderer {
     c.save();if(!p.dead)drawSoldier(c,p,true,w.recoil);c.restore();
     w.pickups.drawProgress(c,p);
     if(w.weapon.reloading){c.strokeStyle='#cbbb83';c.lineWidth=2;c.beginPath();c.arc(p.x,p.y,27,-Math.PI/2,-Math.PI/2+(1-w.weapon.reloadRemaining/w.weapon.reloadDuration)*Math.PI*2);c.stroke();}
-    if(input&&w.state==='playing'){
-      const {x,y}=input.mouse;c.strokeStyle=headAimTarget(w,input.mouse)?'#ff655c':w.effects.hitMarker>0?'#f8e8b9':'#e5e4ceaa';c.lineWidth=w.effects.hitMarker>0?2:1;c.beginPath();
-      for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.moveTo(x+dx*4,y+dy*4);c.lineTo(x+dx*9,y+dy*9);}c.stroke();
-    }
     c.restore();
+    if(w.state==='playing'||w.state==='settings'||w.state==='dead')drawDamageScreen(c,p,w.time,C.width,C.height);
+    if(input&&w.state==='playing'){
+      c.save();const {x,y}=input.mouse;
+      if(headAimTarget(w,input.mouse))drawSkull(c,x,y);
+      else{
+      c.strokeStyle=w.effects.hitMarker>0?'#f8e8b9':'#e5e4ceaa';c.lineWidth=w.effects.hitMarker>0?2:1;c.beginPath();
+      for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){c.moveTo(x+dx*4,y+dy*4);c.lineTo(x+dx*9,y+dy*9);}c.stroke();
+      }c.restore();
+    }
   }
 }

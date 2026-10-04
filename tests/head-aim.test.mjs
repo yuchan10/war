@@ -21,12 +21,13 @@ test('head hover follows rotation, helmet, exposed face and crawling pose',()=>{
     e.headDestroyed=true;assert.equal(pointsAtHead(e,local(e,4,-3)),false);
   }
 });
-test('hover does not expose hidden, dead, spawning enemies or work with a knife',()=>{
+test('hover hides invalid targets and works with both rifle and knife',()=>{
   const e=make(),w={state:'playing',player:{x:100,y:296,angle:0},enemies:[e],walls:[]},point={x:301,y:296};
   assert.equal(headAimTarget(w,point),e);
   w.walls=[{x:200,y:270,w:20,h:60}];assert.equal(headAimTarget(w,point),null);w.walls=[];
   for(const key of ['dead','born']){e[key]=1;assert.equal(headAimTarget(w,point),null);e[key]=0;}
-  w.player.knifeEquipped=true;assert.equal(headAimTarget(w,point),null);
+  w.player.knifeEquipped=true;w.player.unarmed=true;assert.equal(headAimTarget(w,point),e);
+  w.player.knifeEquipped=false;assert.equal(headAimTarget(w,point),null);
 });
 test('headshot flag only promotes center contacts and unaimed player hits never randomly hit head',()=>{
   const e=make();
@@ -85,11 +86,11 @@ test('a swept bullet crosses a severed arm and still hits the next soldier',()=>
   assert.equal(e.wasHit,false);assert.equal(behind.wasHit,true);
 });
 
-test('renderer paints the crosshair red only while hovering a visible head',()=>{
+test('renderer draws a skull only while hovering a visible head',()=>{
   const strokes=[],ctx=new Proxy({stroke(){strokes.push(this.strokeStyle);}},{get:(o,k)=>k in o?o[k]:()=>{}});
   const layer={getContext:()=>ctx},w=scene(),e=w.enemies[0];
   const r=Object.assign(Object.create(Renderer.prototype),{ctx,settings:{values:{}},background:{},backgroundStage:w.stage,entityLayer:layer,sightMask:layer,drawFog(){}});
-  r.draw(w,idle(local(e,1,-4)));assert.equal(strokes.at(-1),'#ff655c');
+  r.draw(w,idle(local(e,1,-4)));assert.equal(strokes.at(-1),'#22261f');
   r.draw(w,idle({x:700,y:500}));assert.equal(strokes.at(-1),'#e5e4ceaa');
   w.walls=[{x:200,y:250,w:20,h:100}];r.draw(w,idle(local(e,1,-4)));assert.equal(strokes.at(-1),'#e5e4ceaa');
 });

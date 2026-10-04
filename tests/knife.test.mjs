@@ -37,6 +37,7 @@ test('E no longer executes a takedown and settings freezes an ongoing swing',()=
 test('knife damage is 60, never hits legs and follows armor, wound and head rules',()=>{
  for(const roll of [.01,.5,.99]){
   const {w,g}=setup();w.random=()=>roll;const part=roll<.05?'head':'torso';
+  w.player.knifeHeadTarget=part==='head'?g:null;
   const before=g.body[part].armor;w.strikeKnife(g);assert.equal(g.body[part].armor,Math.max(0,before-60));assert.equal(g.dead,false);
   assert.equal(g.body.leftLeg.armor,55);assert.equal(g.body.rightLeg.armor,55);
   g.body[part].armor=0;const r=w.strikeKnife(g);assert.equal(r.damage,60);

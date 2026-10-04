@@ -41,7 +41,7 @@ test('finishing an exposed wounded searcher with a knife starts normal combat',(
  w.update(1/120,idle);
  assert.equal(w.state,'playing');assert.equal(w.player.wasHit,undefined);assert.ok(w.player.knifeEquipped);
  w.random=()=>.5;guard.courage='resolute';guard.speed=0;guard.angle=Math.atan2(w.player.y-guard.y,w.player.x-guard.x);guard.body.torso.armor=0;guard.body.torso.damage=120;
- const attack={...idle,mouse:{x:guard.x,y:guard.y,down:true}};
+ const attack={...idle,mouse:{x:guard.x-12*Math.cos(guard.angle),y:guard.y-12*Math.sin(guard.angle),down:true}};
  advance(w,.15,attack);assert.equal(w.prologue.phase,'arming');
  assert.equal(guard.dead,true);assert.ok(!guard.headDestroyed);assert.equal(w.kills,1);
  advance(w,.71);assert.equal(w.prologue.phase,'revenge');assert.equal(w.player.unarmed,false);

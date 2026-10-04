@@ -34,6 +34,7 @@ export function bodyHit(e,b){
  const boxes=[['center',[-13,-6,10,6]],['leftLeg',[-17,-6,-13,0]],['rightLeg',[-17,0,-13,6]],['leftArm',[-5,-16,20,-7]],['rightArm',[-5,7,20,16]]];
  let hit=null;
  for(const [region,box] of boxes){
+  if(b.upperBodyOnly&&PARTS[region]?.kind==='leg')continue;
   if(e.body?.[region]?.severed||(region==='leftArm'&&e.missingArms?.includes(-1))||(region==='rightArm'&&e.missingArms?.includes(1))||(region==='leftLeg'&&e.missingLegs?.includes(-1))||(region==='rightLeg'&&e.missingLegs?.includes(1)))continue;
   const t=intersect(a,z,box,r);if(t===null||(hit&&hit.t<=t))continue;
   hit={region,t,localY:a.y+(z.y-a.y)*t,x:b.px+(b.x-b.px)*t,y:b.py+(b.y-b.py)*t};

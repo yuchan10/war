@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>Combat feedback preview</title>
+<style>body{margin:0;background:#171c17;color:#eee;font:16px sans-serif}nav{padding:12px}button{margin:0 8px;padding:8px}canvas{width:100%;max-width:1200px;display:block}</style>
+<nav>화면 효과 확인 <button data-level="0">정상</button><button data-level="1">피격</button><button data-level="2">약한 출혈</button><button data-level="3">심한 출혈</button></nav><canvas width="1200" height="720"></canvas>
+<script type="module">
+import {World} from '../src/world.js';import {Renderer} from '../src/renderer.js';
+const w=new World({play(){}},()=>.5);w.start();w.walls=[];w.enemies=[];
+Object.assign(w.player,{x:500,y:360,angle:0});w.spawnEnemy('assault',740,360);Object.assign(w.enemies[0],{born:0,angle:Math.PI});
+const r=new Renderer(document.querySelector('canvas'),{values:{}}),input={mouse:{x:739,y:364}};let level=0;
+document.querySelectorAll('button').forEach(b=>b.onclick=()=>level=Number(b.dataset.level));
+function frame(t){w.time=t/1000;w.player.hitFlash=level===1?.35:0;w.player.body.torso.bleedRemaining=level>=2?5:0;w.player.body.torso.bleedRate=level===3?36:4;w.player.bloodLoss=level===3?70:0;r.draw(w,input);requestAnimationFrame(frame);}requestAnimationFrame(frame);
+</script>

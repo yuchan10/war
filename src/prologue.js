@@ -1,3 +1,4 @@
+import { headAimTarget } from './head-aim.js';
 import { drawEnemyIntent } from './enemy-intent.js';
 import { prepareSquad,notifyCasualty } from './squad-ai.js';
 import { updateTacticalEnemy } from './tactical-ai.js';
@@ -67,6 +68,7 @@ export class Prologue {
   update(w,dt,input){
     this.elapsed+=dt;this.phaseTime+=dt;w.time+=dt;
     const p=w.player;
+    p.hitFlash=Math.max(0,(p.hitFlash||0)-dt);
     w.effects.update(dt,w.walls);w.updateWounds(p,dt);if(p.dead)return;
     for(const guard of this.guards)if(!guard.subdued)updateEnemyReload(guard,dt);
     const mv=this.phase==='witness'?{x:0,y:0}:input.movement(),oldX=p.x,oldY=p.y;
@@ -114,7 +116,7 @@ export class Prologue {
         animateStride(g,oldX,oldY);updateFootsteps(g,oldX,oldY,p,(...args)=>w.audio.play(...args));
       }
       this.canStrike=this.knifeTargets(p,w.walls).length>0;
-      if(updateKnife(p,dt,input.mouse.down,(type)=>w.audio.play(type))){
+      if(updateKnife(p,dt,input.mouse.down,(type)=>w.audio.play(type),headAimTarget(w,input.mouse))){
         const targets=this.knifeTargets(p,w.walls);
         for(const target of targets){
           w.strikeKnife(target);

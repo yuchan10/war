@@ -17,6 +17,9 @@ export function pointsAtHead(e,point){
 }
 
 export function headAimTarget(world,point){
-  if(world.state!=='playing'||world.player.unarmed||world.player.knifeEquipped)return null;
-  return world.enemies.find(e=>e.active&&!e.dead&&e.born<=0&&pointsAtHead(e,point)&&visiblePoint(world.player,point,world.walls))??null;
+  if(world.state!=='playing'||world.player.dead||world.player.armsDisabled||(world.player.unarmed&&!world.player.knifeEquipped))return null;
+  const intro=world.prologue&&world.prologue.phase!=='revenge';
+  if(intro&&world.prologue.phase!=='search')return null;
+  const targets=intro?world.prologue.guards:world.enemies;
+  return targets.find(e=>e.active!==false&&!e.dead&&!e.subdued&&(e.born??0)<=0&&pointsAtHead(e,point)&&visiblePoint(world.player,point,world.walls))??null;
 }

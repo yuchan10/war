@@ -11,7 +11,7 @@ export function knifePose(remaining=0){
  return {angle:a[1]+(b[1]-a[1])*u,reach:a[2]+(b[2]-a[2])*u,wrist:a[3]+(b[3]-a[3])*u,trail:t>.07&&t<.21?Math.sin((t-.07)/.14*Math.PI):0};
 }
 export function knifeContact(player,target){
- const hit=bodyHit(target,{px:player.x,py:player.y,x:target.x,y:target.y,radius:0});
+ const hit=bodyHit(target,{px:player.x,py:player.y,x:target.x,y:target.y,radius:0,upperBodyOnly:true});
  return hit?{...hit,upperBodyOnly:true,weapon:'knife'}:null;
 }
 import { hasLineOfSight } from './arena.js';
@@ -25,7 +25,7 @@ export function knifeTargets(player,targets,walls){
 }
 
 // One swing per click; the hit happens when the blade crosses in front of the player.
-export function updateKnife(player,dt,down,play){
+export function updateKnife(player,dt,down,play,headTarget=null){
   const pressed=down&&!player.knifeAttackHeld;player.knifeAttackHeld=down;
   const previous=player.knifeSwing||0;
   player.knifeSwing=Math.max(0,previous-dt);
@@ -33,6 +33,7 @@ export function updateKnife(player,dt,down,play){
   if(!player.knifeEquipped||player.armsDisabled||player.dead)return false;
   if(pressed&&player.knifeCooldown<=0){
     player.knifeSwing=KNIFE_DURATION;player.knifeCooldown=.5;player.knifeHitDone=false;
+    player.knifeHeadTarget=headTarget;
     return false;
   }
   if(previous>KNIFE_DURATION-.07&&player.knifeSwing<=KNIFE_DURATION-.07)play('knife');
