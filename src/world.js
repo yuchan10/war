@@ -1,3 +1,4 @@
+import { triggerBlastShock } from './blast-screen.js';
 import { headAimTarget } from './head-aim.js';
 import { hearGrenadeLanding,updateGrenadeAvoidance } from './grenade-ai.js';
 import { createGrenade,updateGrenades,blastDamage,blastGroundRadius } from './grenade.js';
@@ -60,7 +61,7 @@ export class World {
     this.score=0;
     this.wave=0;
     this.time=0;
-    this.shake=0;
+    this.shake=0;this.blastShock=null;
     this.kills=0;
     this.recoil=0;
     this.state='menu';
@@ -189,7 +190,8 @@ export class World {
     this.audio.play('knife');return true;
   }
   explodeGrenade(g,damageEnabled=true){
-    const flash=this.effects.add('explosion',g.x,g.y,0,'#efc991',.5,blastGroundRadius(g.height),0);if(flash)flash.height=g.height||0;
+    triggerBlastShock(this,g);
+    const flash=this.effects.add('explosion',g.x,g.y,0,'#efc991',.85,blastGroundRadius(g.height),0);if(flash)flash.height=g.height||0;
     this.burst(g.x,g.y-(g.height||0),'#c5ac80',36);this.shake=Math.max(this.shake,18);
     this.audio.play('explosion',{dx:g.x-this.player.x,dy:g.y-this.player.y});
     this.emitPlayerSound('gunshot',g.x,g.y);

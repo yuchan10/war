@@ -1,3 +1,4 @@
+import { blastScreenState,drawBlastScreen } from './blast-screen.js';
 import { headAimTarget } from './head-aim.js';
 import { drawGrenades,drawGrenadePrediction } from './grenade.js';
 import { drawEnemyHitboxes } from './hitbox-overlay.js';
@@ -18,6 +19,7 @@ export class Renderer {
     this.fog=document.createElement('canvas');this.fog.width=C.width;this.fog.height=C.height;
     this.entityLayer=document.createElement('canvas');this.entityLayer.width=C.width;this.entityLayer.height=C.height;
     this.sightMask=document.createElement('canvas');this.sightMask.width=C.width;this.sightMask.height=C.height;
+    this.blastFrame=document.createElement('canvas');this.blastFrame.width=C.width;this.blastFrame.height=C.height;
     this.fogTime=-1;
     this.fogHistory=document.createElement('canvas');this.fogHistory.width=C.width;this.fogHistory.height=C.height;
     this.drawBackground();
@@ -66,6 +68,12 @@ export class Renderer {
   draw(w,input){
     if(this.canvas?.style)this.canvas.style.cursor=w.state==='playing'?'none':'crosshair';
     let c=this.ctx;const screen=c,p=w.player,s=this.settings.values;c.clearRect(0,0,1200,720);c.save();
+    const shock=blastScreenState(w);
+    if(s.cameraShake&&shock.strength>0){
+      const strength=shock.strength;
+      c.translate(C.width/2,C.height/2);c.rotate(Math.sin(shock.age*5)*strength*.018);c.scale(1+strength*.035,1+strength*.035);
+      c.translate(-C.width/2+Math.sin(shock.age*49)*strength*10,-C.height/2+Math.cos(shock.age*43)*strength*7);
+    }
     const storyOverview=w.prologue?.phase==='witness';
     if(s.cameraShake&&w.shake)c.translate(Math.sin(w.time*65)*Math.min(w.shake,2)*.4,Math.cos(w.time*53)*Math.min(w.shake,2)*.4);
     if(this.backgroundStage!==w.stage)this.drawBackground(w.stage);
@@ -148,6 +156,7 @@ export class Renderer {
     if(w.weapon.reloading){c.strokeStyle='#cbbb83';c.lineWidth=2;c.beginPath();c.arc(p.x,p.y,27,-Math.PI/2,-Math.PI/2+(1-w.weapon.reloadRemaining/w.weapon.reloadDuration)*Math.PI*2);c.stroke();}
     c.restore();
     if(w.state==='playing'||w.state==='settings'||w.state==='dead')drawDamageScreen(c,p,w.time,C.width,C.height);
+    drawBlastScreen(c,w,this.blastFrame,s.cameraShake,C.width,C.height);
     if(input&&w.state==='playing'){
       drawGrenadePrediction(c,w,input.mouse);
       c.save();const {x,y}=input.mouse;

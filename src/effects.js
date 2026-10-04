@@ -114,6 +114,11 @@ export class Effects {
       c.globalAlpha=e.persistent?1:1-progress;
       c.fillStyle = e.color; c.strokeStyle = e.color;
       if(e.kind==='explosion'){
+        // Expanding dust lobes and a bright core share the actual blast center.
+        for(let i=0;i<9;i++){
+          const a=i*Math.PI*2/9,spread=e.size*progress*.72;
+          c.fillStyle=`rgba(92,78,57,${(1-progress)*.3})`;c.beginPath();c.arc(Math.cos(a)*spread,Math.sin(a)*spread-(e.height||0)*.3,8+progress*e.size*.22,0,Math.PI*2);c.fill();
+        }
         const r=Math.max(1,e.size*(.18+progress*.82));
         c.fillStyle=`rgba(255,196,106,${(1-progress)*.25})`;c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fill();
         c.strokeStyle='#e9c89b';c.lineWidth=3*(1-progress)+.5;c.stroke();

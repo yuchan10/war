@@ -70,9 +70,13 @@ export class Audio {
     const shot=type==='shot'||type==='enemyShot';
     if(type==='explosion'){
       const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();
-      source.buffer=this.noise;filter.type='lowpass';filter.frequency.value=900;
-      gain.gain.setValueAtTime(.4*spatial.gain,now);gain.gain.exponentialRampToValueAtTime(.001,now+.6);
-      source.connect(filter);filter.connect(gain);gain.connect(pan);source.start();source.stop(now+.65);
+      source.buffer=this.noise;filter.type='lowpass';filter.frequency.value=1500;
+      gain.gain.setValueAtTime(.75*spatial.gain,now);gain.gain.exponentialRampToValueAtTime(.001,now+.68);
+      source.connect(filter);filter.connect(gain);gain.connect(pan);source.start();source.stop(now+.7);
+      const bass=c.createOscillator(),bassGain=c.createGain();bass.type='sine';bass.frequency.setValueAtTime(110,now);bass.frequency.exponentialRampToValueAtTime(32,now+.5);
+      bassGain.gain.setValueAtTime(.42*spatial.gain,now);bassGain.gain.exponentialRampToValueAtTime(.001,now+.65);
+      bass.connect(bassGain);bassGain.connect(pan);bass.start();bass.stop(now+.7);
+      bass.onended=()=>{bass.disconnect();bassGain.disconnect();};
       source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();pan.disconnect();};return;
     }
     const distanceGain=(type==='enemyShot'||type==='wallHit'||type==='grenadeLand'||type==='enemyFootstep')?spatial.gain:1;

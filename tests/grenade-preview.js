@@ -16,6 +16,6 @@ function reset(){
 }
 document.querySelector('#lab-reset').onclick=()=>{audio.unlock();reset();};
 document.querySelector('#lab-air').onclick=()=>{reset();w.primeGrenade();w.throwGrenade({x:760,y:390});updateGrenades(w.grenades,.43,w.walls,g=>w.explodeGrenade(g));frozen=true;};
-document.querySelector('#lab-blast').onclick=()=>{reset();w.walls=[];w.explodeGrenade({x:760,y:390});w.effects.update(.12,[]);frozen=true;renderer.draw(w,input);};
+document.querySelector('#lab-blast').onclick=()=>{reset();w.walls=[];w.explodeGrenade({x:600,y:390});w.time+=.12;w.effects.update(.12,[]);frozen=true;renderer.draw(w,input);};
 function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(!frozen)w.update(dt,input);renderer.draw(w,input);ui.update();requestAnimationFrame(frame);}
 reset();requestAnimationFrame(frame);
