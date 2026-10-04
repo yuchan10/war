@@ -108,8 +108,13 @@ export class Effects {
       c.save(); c.translate(e.x, e.y); c.rotate(e.angle);
       c.globalAlpha=e.persistent?1:1-progress;
       c.fillStyle = e.color; c.strokeStyle = e.color;
-      if(e.kind==='body'){
-        const fall=Math.min(1,progress*70);
+      if(e.kind==='explosion'){
+        const r=Math.max(1,e.size*(.18+progress*.82));
+        c.fillStyle=`rgba(255,196,106,${(1-progress)*.25})`;c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fill();
+        c.strokeStyle='#e9c89b';c.lineWidth=3*(1-progress)+.5;c.stroke();
+        c.fillStyle=`rgba(255,239,184,${Math.max(0,1-progress*4)})`;c.beginPath();c.arc(0,0,r*.45,0,Math.PI*2);c.fill();
+      }else if(e.kind==='body'){
+          const fall=Math.min(1,e.fallDuration?e.age/e.fallDuration:progress*70);
         if(e.directedFall)c.scale(.55+fall*.45,1);
         else c.rotate(fall*.35);
         c.globalAlpha=Math.min(1,e.life/2);

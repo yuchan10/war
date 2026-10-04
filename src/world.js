@@ -1,4 +1,5 @@
 import { headAimTarget } from './head-aim.js';
+import { createGrenade,updateGrenades,blastDamage } from './grenade.js';
 import { prepareSquad,registerNearMiss,notifyCasualty } from './squad-ai.js';
 import { updateTacticalEnemy } from './tactical-ai.js';
 import { updateEnemyReload } from './enemy-fire.js';
@@ -37,6 +38,8 @@ export class World {
     this.reset();
   }
   reset() {
+    this.deathRemaining=0;this.playerCorpse=null;this.audio.setDeathEffect?.(false);
+    this.grenades=[];this.grenadeAmmo=C.grenade.count;this.grenadeCooldown=0;
     this.battlefieldHistory=[];
     this.prologue=null;
     this.walls=STAGES[0].walls;
@@ -92,6 +95,7 @@ export class World {
     if(index<0)this.battlefieldHistory.push(record);else this.battlefieldHistory[index]=record;
   }
   nextStage() {
+    this.grenades=[];this.grenadeAmmo=C.grenade.count;this.grenadeCooldown=0;
     if(this.wave>0||this.prologue)this.archiveBattlefield();
     this.prologue=null;
     this.wave++;
@@ -163,13 +167,61 @@ export class World {
   }
   checkPlayerDeath(){
     const p=this.player;if(!p.dead||p.deathHandled)return;
-    p.deathHandled=true;p.knifeSwing=0;this.state='dead';this.effects.fallen(p);this.audio.play('dead');
+    p.deathHandled=true;p.knifeSwing=0;p.knifeHeadTarget=null;this.state='dead';
+    this.deathRemaining=C.death.duration;this.shake=0;
+    this.playerCorpse=this.effects.fallen(p);this.playerCorpse.fallDuration=C.death.duration*C.death.timeScale;
+    this.audio.setDeathEffect?.(true);this.audio.play('dead');
+  }
+  throwGrenade(target){
+    const p=this.player;
+    if(this.state!=='playing'||p.dead||!p.hasRifle||p.armsDisabled||this.grenadeAmmo<=0||this.grenadeCooldown>0)return false;
+    this.grenades.push(createGrenade(p,target));this.grenadeAmmo--;this.grenadeCooldown=C.grenade.cooldown;
+    this.audio.play('knife');return true;
+  }
+  explodeGrenade(g,damageEnabled=true){
+    this.effects.add('explosion',g.x,g.y,0,'#efc991',.5,C.grenade.radius,0);
+    this.burst(g.x,g.y,'#c5ac80',26);this.shake=Math.max(this.shake,6);
+    this.audio.play('explosion',{dx:g.x-this.player.x,dy:g.y-this.player.y});
+    this.emitPlayerSound('gunshot',g.x,g.y);
+    if(!damageEnabled)return;
+    for(const e of [...this.enemies,this.player]){
+      if(e!==this.player&&(e.born??0)>0)continue;
+      const damage=blastDamage(g,e,this.walls);if(damage<=0)continue;
+      const hit={region:'torso',weapon:'grenade',x:e.x,y:e.y},direction={vx:e.x-g.x,vy:e.y-g.y};
+      // Blast overpressure can carry through a destroyed vest; existing bullet rules stay unchanged.
+      const armor=e.body.torso.armor;
+      if(armor>0)this.woundEffect(e,applyInjury(e,Math.min(damage,armor),hit,this.time,this.random),direction,hit);
+      if(damage>armor)this.woundEffect(e,applyInjury(e,damage-armor,hit,this.time,this.random),direction,hit);
+      applyKnockback(e,direction.vx,direction.vy,160*damage/C.grenade.damage);
+      if(e===this.player){this.feedback.damaged();e.hitFlash=.35;this.checkPlayerDeath();}
+      else if(e.dead)this.killEnemy(e);
+    }
+  }
+  updateDeath(dt){
+    const elapsed=Math.min(Math.max(0,dt),this.deathRemaining);
+    if(elapsed<=0)return;
+    this.deathRemaining=Math.max(0,this.deathRemaining-elapsed);
+    if(this.deathRemaining<1e-9)this.deathRemaining=0;
+    const slow=elapsed*C.death.timeScale;this.time+=slow;
+    this.effects.update(slow,this.walls);
+    updateGrenades(this.grenades,slow,this.walls,g=>this.explodeGrenade(g,false));
+    this.grenades=this.grenades.filter(g=>g.active);
+    this.player.hitFlash=Math.max(0,(this.player.hitFlash||0)-slow);
+    for(const b of this.bullets.items){
+      if(!b.active)continue;b.life-=slow;
+      traceBullet(b,slow,this.walls,()=>false,()=>this.effects.add('dust',b.x,b.y,0,'#b5a485',.25,14));
+      if(b.life<=0)b.active=false;
+    }
+    for(const q of this.particles.items){
+      if(!q.active)continue;q.life-=slow;q.x+=q.vx*slow;q.y+=q.vy*slow;if(q.life<=0)q.active=false;
+    }
   }
   updateWounds(e,dt){
     tickWounds(e,dt,(part,size)=>this.effects.bleed(e,part,size,this.walls));
     if(e===this.player)this.checkPlayerDeath();else if(e.dead)this.killEnemy(e);
   }
   update(dt,input) {
+    if(this.state==='dead'){this.updateDeath(dt);return;}
     if(this.state!=='playing')return;
     if(input.consumeWeaponSwitch?.()&&this.player.hasRifle){
       const p=this.player;p.knifeEquipped=!p.knifeEquipped;p.unarmed=p.knifeEquipped;
@@ -185,6 +237,10 @@ export class World {
     p.angle=Math.atan2(input.mouse.y-p.y,input.mouse.x-p.x);
     p.hitFlash=Math.max(0,(p.hitFlash||0)-dt);
     this.updateWounds(p,dt);if(p.dead)return;
+    this.grenadeCooldown=Math.max(0,this.grenadeCooldown-dt);
+    if(input.consumeGrenade?.())this.throwGrenade(input.mouse);
+    updateGrenades(this.grenades,dt,this.walls,g=>this.explodeGrenade(g));
+    this.grenades=this.grenades.filter(g=>g.active);if(p.dead)return;
     this.feedback.update(dt);
     p.shotTimer-=dt;
     this.recoil=Math.max(0,this.recoil-dt*45);

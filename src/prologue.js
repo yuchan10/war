@@ -78,6 +78,7 @@ export class Prologue {
     updateFootsteps(p,oldX,oldY,p,(...args)=>{w.audio.play(...args);w.emitPlayerSound('footstep');},true);
     p.angle=this.phase==='witness'?Math.atan2(330-p.y,568-p.x):Math.atan2(input.mouse.y-p.y,input.mouse.x-p.x);
     input.consumeReload?.();
+    input.consumeGrenade?.();
     if(this.phase==='witness'){
       for(const guard of this.guards){
         const oldY=guard.y;

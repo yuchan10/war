@@ -37,14 +37,14 @@ window.addEventListener('blur',()=> {
 function frame(now) {
   const elapsed=Math.min((now-last)/1000,CONFIG.maxFrame);
   last=now;
-  if(world.state==='playing') {
+  if(world.state==='playing'||(world.state==='dead'&&world.deathRemaining>0)) {
     accumulator+=elapsed;
     while(accumulator>=CONFIG.step) {
       world.update(CONFIG.step,input);
       accumulator-=CONFIG.step;
     }
   }else accumulator=0;
-  audio.setScene(world.state==='playing',settings.values.ambience);
+  audio.setScene(world.state==='playing'||(world.state==='dead'&&world.deathRemaining>0),settings.values.ambience);
   renderer.draw(world,input);
   uiTime+=elapsed;
   if(uiTime>.06||world.state!==ui.lastState) {

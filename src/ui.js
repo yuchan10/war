@@ -44,6 +44,7 @@ export class UI {
     document.querySelector('#body-panel').classList.toggle('hidden',w.state!=='playing');
     document.querySelector('#loot-hint').textContent=w.pickups.changing?'E 누른 채 정지 · 놓으면 교체 취소':w.pickups.available(p,w.walls,gun)?'E · 탄약 획득 / 길게 눌러 방어구 교체 (부위당 2.5초)':'';
     document.querySelector('#ammo').textContent=p.armsDisabled?'사격 불가':p.knifeEquipped?'전투용 칼':p.unarmed?'비무장':`${String(gun.ammo).padStart(2,'0')} / ${gun.reserve}`;
+    const grenades=document.querySelector('#grenade-ammo');if(grenades)grenades.textContent=p.hasRifle?`G · 수류탄 ${w.grenadeAmmo}`:'';
     const caption=document.querySelector('#story-caption');
     caption.textContent=w.state==='playing'?(w.prologue?w.prologue.caption:(w.time-w.stageStartedAt<7?`${w.stage.name} · ${w.stage.strategy}`:'')):'';
     caption.classList.toggle('hidden',!caption.textContent);
@@ -51,10 +52,11 @@ export class UI {
     document.querySelector('#reload-progress').style.width=`${p.unarmed?0:(gun.reloading?1-gun.reloadRemaining/gun.reloadDuration:gun.ammo/gun.capacity)*100}%`;
     document.querySelector('.controls').classList.toggle('hidden',w.state!=='playing');
     document.querySelector('.combat-hud').classList.toggle('hidden',w.state!=='playing');
-    if(this.settingsOpen||w.state===this.lastState)return;
+    const displayState=w.state==='dead'&&w.deathRemaining>0?'dying':w.state;
+    if(this.settingsOpen||displayState===this.lastState)return;
     this.overlay.classList.toggle('start-screen',w.state==='menu');
-    this.lastState=w.state;this.overlay.classList.toggle('hidden',w.state==='playing');
-    if(w.state==='playing'||w.state==='menu')return;
+    this.lastState=displayState;this.overlay.classList.toggle('hidden',displayState==='playing'||displayState==='dying');
+    if(displayState==='playing'||displayState==='menu'||displayState==='dying')return;
     this.overlay.innerHTML=`<div class="modal"><h2>${w.state==='won'?'작전 완료':'작전 실패'}</h2><p>처치 ${w.kills} · ${Math.floor(w.time)}초</p><button id="resume" class="primary">다시 시작</button></div>`;
     document.querySelector('#resume').onclick=()=>this.start();
   }

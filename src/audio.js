@@ -9,7 +9,7 @@ export function spatialSound(dx=0,dy=0){
 
 export class Audio {
   constructor(){
-    this.context=null;this._enabled=true;this.sceneActive=false;this.ambienceWanted=true;
+    this.context=null;this._enabled=true;this.sceneActive=false;this.ambienceWanted=true;this.deathEffect=false;
     this.rifleData=fetchRifleSamples().catch(error=>{console.error(error);return null;});
   }
   get enabled(){return this._enabled;}
@@ -22,7 +22,10 @@ export class Audio {
       this.master=c.createGain();this.master.gain.value=this.enabled?.65:0;
       const limiter=c.createDynamicsCompressor();limiter.threshold.value=-18;limiter.knee.value=16;limiter.ratio.value=6;
       limiter.attack.value=.003;limiter.release.value=.16;
-      this.master.connect(limiter);limiter.connect(c.destination);
+      this.deathFilter=c.createBiquadFilter();this.deathFilter.type='lowpass';this.deathFilter.Q.value=.7;
+      this.deathFilter.frequency.value=this.deathEffect?650:22000;
+      this.deathGain=c.createGain();this.deathGain.gain.value=this.deathEffect?.28:1;
+      this.master.connect(this.deathFilter);this.deathFilter.connect(this.deathGain);this.deathGain.connect(limiter);limiter.connect(c.destination);
       this.noise=c.createBuffer(1,c.sampleRate*.7,c.sampleRate);
       const data=this.noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
       this.atmosphere=c.createGain();this.atmosphere.gain.value=0;this.atmosphere.connect(this.master);
@@ -38,13 +41,27 @@ export class Audio {
     if(active===this.sceneActive&&ambience===this.ambienceWanted)return;
     this.sceneActive=active;this.ambienceWanted=ambience;this.applyAmbience();
   }
+  setDeathEffect(active){
+    if(this.deathEffect===active)return;this.deathEffect=active;
+    if(!this.context||!this.deathFilter||!this.deathGain)return;
+    const now=this.context.currentTime;
+    this.deathFilter.frequency.setTargetAtTime(active?650:22000,now,active?.035:.08);
+    this.deathGain.gain.setTargetAtTime(active?.28:1,now,active?.06:.08);
+  }
   applyAmbience(){if(this.atmosphere)this.atmosphere.gain.setTargetAtTime(this.sceneActive&&this.ambienceWanted?.065:0,this.context.currentTime,.2);}
   play(type,position={}){
     if(!this.enabled||!this.context||this.context.state!=='running')return;
     const c=this.context,now=c.currentTime;
     const spatial=spatialSound(position.dx,position.dy);
-    const pan=c.createStereoPanner();pan.pan.value=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep')?spatial.pan:0;pan.connect(this.master);
+    const pan=c.createStereoPanner();pan.pan.value=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep'||type==='explosion')?spatial.pan:0;pan.connect(this.master);
     const shot=type==='shot'||type==='enemyShot';
+    if(type==='explosion'){
+      const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();
+      source.buffer=this.noise;filter.type='lowpass';filter.frequency.value=900;
+      gain.gain.setValueAtTime(.4*spatial.gain,now);gain.gain.exponentialRampToValueAtTime(.001,now+.6);
+      source.connect(filter);filter.connect(gain);gain.connect(pan);source.start();source.stop(now+.65);
+      source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();pan.disconnect();};return;
+    }
     const distanceGain=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep')?spatial.gain:1;
     if(type==='reload'||type==='reloadReady'){
       playReload(c,this.noise,pan,type==='reloadReady');return;

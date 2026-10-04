@@ -1,4 +1,5 @@
 import { headAimTarget } from './head-aim.js';
+import { drawGrenades } from './grenade.js';
 import { drawEnemyHitboxes } from './hitbox-overlay.js';
 import { drawDamageScreen,drawSkull } from './damage-screen.js';
 import { drawEnemyIntent } from './enemy-intent.js';
@@ -125,7 +126,8 @@ export class Renderer {
     }
     for(const q of w.particles.items){if(!q.active||!visiblePoint(p,q,w.walls))continue;c.globalAlpha=Math.max(0,q.life/q.maxLife);c.fillStyle='#c4b999';c.fillRect(q.x,q.y,q.size,q.size);}c.globalAlpha=1;
 
-    w.effects.draw(c);
+    w.effects.draw(c,e=>e!==w.playerCorpse);
+    drawGrenades(c,w.grenades||[]);
     w.pickups.draw(c,()=>true,p,w.weapon,w.time);
     if(s.enemyHitboxes)drawEnemyHitboxes(c,w);
     endSight();
@@ -139,7 +141,8 @@ export class Renderer {
       surface.forEach((point,i)=>i?c.lineTo(point.x,point.y):c.moveTo(point.x,point.y));
       c.closePath();c.clip();this.wall(c,wall);c.restore();
     }
-    c.save();if(!p.dead)drawSoldier(c,p,true,w.recoil);c.restore();
+    c.save();if(!p.dead)drawSoldier(c,p,true,w.recoil);
+    else if(w.playerCorpse)w.effects.draw(c,e=>e===w.playerCorpse);c.restore();
     w.pickups.drawProgress(c,p);
     if(w.weapon.reloading){c.strokeStyle='#cbbb83';c.lineWidth=2;c.beginPath();c.arc(p.x,p.y,27,-Math.PI/2,-Math.PI/2+(1-w.weapon.reloadRemaining/w.weapon.reloadDuration)*Math.PI*2);c.stroke();}
     c.restore();
