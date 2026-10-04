@@ -65,12 +65,12 @@ test('Escape settings toggle enemy hitboxes and restore the saved choice',t=>{
  query('#enemy-hitboxes').onchange({target:{checked:false}});assert.equal(ui.settings.values.enemyHitboxes,false);
 });
 
-test('fatal hit leaves corpse view unobstructed for 0.4 seconds before showing failure',t=>{
+test('fatal hit leaves corpse view unobstructed for 1 second before showing failure',t=>{
  const {ui,world,input,query}=setup(t);ui.start();
  world.player.body.head.armor=0;world.hurt(1,null,{region:'head'});ui.update();
  assert.equal(ui.lastState,'dying');assert.ok(query('#overlay').classList.contains('hidden'));
- world.update(.2,input);ui.update();assert.ok(query('#overlay').classList.contains('hidden'));
- world.update(.2,input);ui.update();assert.equal(ui.lastState,'dead');
+ world.update(.5,input);ui.update();assert.ok(query('#overlay').classList.contains('hidden'));
+ world.update(.5,input);ui.update();assert.equal(ui.lastState,'dead');
  assert.equal(query('#overlay').classList.contains('hidden'),false);assert.match(query('#overlay').innerHTML,/작전 실패/);
  query('#resume').onclick();assert.equal(world.deathRemaining,0);assert.equal(world.playerCorpse,null);
 });

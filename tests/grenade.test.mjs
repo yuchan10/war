@@ -44,7 +44,7 @@ test('held fuse follows hand, pauses with settings, and kills owner if not throw
  const w=scene();w.primeGrenade();const g=w.primedGrenade;w.player.x=150;
  w.update(.1,idle);assert.ok(g.x>150);assert.ok(g.fuse<3);
  const fuse=g.fuse;w.state='settings';w.update(2,idle);assert.equal(g.fuse,fuse);
- w.state='playing';w.update(3,idle);assert.equal(w.player.dead,true);assert.equal(w.primedGrenade,null);assert.equal(w.deathRemaining,.4);
+ w.state='playing';w.update(3,idle);assert.equal(w.player.dead,true);assert.equal(w.primedGrenade,null);assert.equal(w.deathRemaining,1);
 });
 test('close blast kills and dismembers all nearby enemies; outer blast severs limbs and knocks back',()=>{
  const w=scene();w.enemies=[];

@@ -7,16 +7,24 @@ export function createGrenade(player,target,walls=[]){
  moveBody(end,0,0,walls);
  return {x:player.x,y:player.y,startX:player.x,startY:player.y,endX:end.x,endY:end.y,radius:4,flightTime:.45+distance/c.range*.45,flightAge:0,height:10,fuse:c.fuse,age:0,active:true,held:false};
 }
-export function updateGrenades(grenades,dt,walls,explode){
+export function updateGrenades(grenades,dt,walls,explode,land=()=>{}){
  for(const g of grenades){
   if(!g.active)continue;const step=Math.min(Math.max(0,dt),g.fuse);g.fuse=Math.max(0,g.fuse-step);g.age+=step;
   if(g.held){
    g.x=g.owner.x+Math.cos(g.owner.angle||0)*12;g.y=g.owner.y+Math.sin(g.owner.angle||0)*12;g.height=8;
   }else if(g.flightTime>0){
+   const wasFlying=g.flightAge<g.flightTime;
    g.flightAge=Math.min(g.flightTime,g.flightAge+step);Object.assign(g,grenadePosition(g,g.flightAge));
+   if(wasFlying&&g.flightAge>=g.flightTime&&g.fuse>1e-9)land(g);
   }
   if(g.fuse<=1e-9){g.active=false;explode(g);}
  }
+}
+export const grenadeCountdown=fuse=>`${(Math.ceil(Math.max(0,fuse)*10)/10).toFixed(1)}초`;
+export const blastGroundRadius=(height=0,radius=CONFIG.grenade.radius)=>Math.sqrt(Math.max(0,radius**2-height**2));
+function drawCountdown(c,x,y,fuse){
+ c.save();c.font='bold 13px monospace';c.textAlign='center';c.fillStyle='#111a16e8';c.fillRect(x-29,y-13,58,21);
+ c.fillStyle=fuse<=1?'#ffab86':'#fff0c5';c.fillText(grenadeCountdown(fuse),x,y+2);c.restore();
 }
 export function grenadePosition(g,elapsed){
  const t=Math.max(0,Math.min(1,elapsed/g.flightTime));
@@ -26,8 +34,8 @@ export function grenadePrediction(player,target,walls,fuse){
  const g=createGrenade(player,target,walls),duration=Math.min(g.flightTime,Math.max(0,fuse));
  const points=Array.from({length:33},(_,i)=>grenadePosition(g,duration*i/32)),end=points.at(-1);
  return {points,end,airburst:duration<g.flightTime,
-  radius:Math.sqrt(Math.max(0,CONFIG.grenade.radius**2-end.height**2)),
-  killRadius:Math.sqrt(Math.max(0,CONFIG.grenade.killRadius**2-end.height**2))};
+  radius:blastGroundRadius(end.height),
+  killRadius:blastGroundRadius(end.height,CONFIG.grenade.killRadius)};
 }
 export function drawGrenadePrediction(c,world,target){
  if(world.state!=='playing'||!world.primedGrenade?.active||world.player.dead)return;
@@ -42,6 +50,7 @@ export function drawGrenadePrediction(c,world,target){
  if(p.airburst){c.setLineDash([3,4]);c.beginPath();c.moveTo(x,y-height);c.lineTo(x,y);c.stroke();c.setLineDash([]);}
  c.beginPath();c.arc(x,y,4,0,Math.PI*2);c.stroke();
  if(p.airburst){c.fillStyle='#ffc69b';c.font='12px sans-serif';c.textAlign='center';c.fillText('공중 폭발 예상',x,y-height-15);}
+ drawCountdown(c,target.x,target.y+32,world.primedGrenade.fuse);
  c.restore();
 }
 export function blastDamage(g,target,walls){
@@ -57,5 +66,6 @@ export function drawGrenades(c,grenades,{airborneOnly=false,groundOnly=false,isV
   c.translate(0,-lift);c.rotate(g.age*8);c.fillStyle='#829367';c.strokeStyle='#20291d';c.lineWidth=1.5;
   c.beginPath();c.ellipse(0,0,4,5,0,0,Math.PI*2);c.fill();c.stroke();c.fillStyle='#c1bea3';c.fillRect(-2,-7,4,3);c.restore();
   c.save();c.strokeStyle=g.fuse<.4?'#ffa276':'#ded8a2';c.lineWidth=1.5;c.beginPath();c.arc(g.x,g.y-lift,8,-Math.PI/2,-Math.PI/2+Math.PI*2*g.fuse/CONFIG.grenade.fuse);c.stroke();c.restore();
+  drawCountdown(c,g.x,g.y-lift-23,g.fuse);
  }
 }

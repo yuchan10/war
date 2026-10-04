@@ -11,7 +11,7 @@ export class Effects {
   persist(data){this.items.limit++;return this.items.spawn({...data,persistent:true,age:0});}
   snapshot(){return structuredClone({remains:this.items.items.filter(e=>e.active&&e.persistent),blood:this.blood.marks});}
   add(kind, x, y, angle, color, life, size, speed=95) {
-    this.items.spawn({ persistent:false,kind, x, y, angle, color, life, speed, duration: life, size:kind==='blood'?size*1.4:size });
+    return this.items.spawn({ height:0,persistent:false,kind, x, y, angle, color, life, speed, duration: life, size:kind==='blood'?size*1.4:size });
   }
   fire(player, boosted) {
     const { x, y, angle } = player;
@@ -117,7 +117,7 @@ export class Effects {
         const r=Math.max(1,e.size*(.18+progress*.82));
         c.fillStyle=`rgba(255,196,106,${(1-progress)*.25})`;c.beginPath();c.arc(0,0,r,0,Math.PI*2);c.fill();
         c.strokeStyle='#e9c89b';c.lineWidth=3*(1-progress)+.5;c.stroke();
-        c.fillStyle=`rgba(255,239,184,${Math.max(0,1-progress*4)})`;c.beginPath();c.arc(0,0,r*.45,0,Math.PI*2);c.fill();
+        c.fillStyle=`rgba(255,239,184,${Math.max(0,1-progress*4)})`;c.beginPath();c.arc(0,-(e.height||0),r*.45,0,Math.PI*2);c.fill();
       }else if(e.kind==='body'){
           const fall=Math.min(1,e.fallDuration?e.age/e.fallDuration:progress*70);
         if(e.directedFall)c.scale(.55+fall*.45,1);

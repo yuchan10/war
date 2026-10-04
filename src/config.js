@@ -1,6 +1,6 @@
 export const CONFIG= {
   movementScale:.8,
-  death:{duration:.4,timeScale:.25},
+  death:{duration:1,timeScale:.25},
   grenade:{count:3,dropChance:.3,range:360,fuse:3,radius:165,killRadius:65,damage:260,cooldown:.45,arcHeight:90,ringRadius:210},
   width:1200,height:720,step:1/120,maxFrame:.1,particleLimit:420,bulletLimit:600,arena: {
     left:42,right:1158,top:62,bottom:658

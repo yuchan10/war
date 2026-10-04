@@ -1,5 +1,6 @@
 import { headAimTarget } from './head-aim.js';
-import { createGrenade,updateGrenades,blastDamage } from './grenade.js';
+import { hearGrenadeLanding,updateGrenadeAvoidance } from './grenade-ai.js';
+import { createGrenade,updateGrenades,blastDamage,blastGroundRadius } from './grenade.js';
 import { prepareSquad,registerNearMiss,notifyCasualty } from './squad-ai.js';
 import { updateTacticalEnemy } from './tactical-ai.js';
 import { updateEnemyReload } from './enemy-fire.js';
@@ -188,8 +189,8 @@ export class World {
     this.audio.play('knife');return true;
   }
   explodeGrenade(g,damageEnabled=true){
-    this.effects.add('explosion',g.x,g.y,0,'#efc991',.5,C.grenade.radius,0);
-    this.burst(g.x,g.y,'#c5ac80',36);this.shake=Math.max(this.shake,18);
+    const flash=this.effects.add('explosion',g.x,g.y,0,'#efc991',.5,blastGroundRadius(g.height),0);if(flash)flash.height=g.height||0;
+    this.burst(g.x,g.y-(g.height||0),'#c5ac80',36);this.shake=Math.max(this.shake,18);
     this.audio.play('explosion',{dx:g.x-this.player.x,dy:g.y-this.player.y});
     this.emitPlayerSound('gunshot',g.x,g.y);
     if(this.primedGrenade===g)this.primedGrenade=null;
@@ -265,7 +266,7 @@ export class World {
     const grenadeAction=armedBefore||!!this.primedGrenade||this.grenadeTriggerLock;
     if(armedBefore&&primaryPressed)this.throwGrenade(input.mouse);
     if(this.primedGrenade&&p.armsDisabled){this.primedGrenade.held=false;this.primedGrenade.owner=null;this.primedGrenade.height=0;this.primedGrenade=null;}
-    updateGrenades(this.grenades,dt,this.walls,g=>this.explodeGrenade(g));
+    updateGrenades(this.grenades,dt,this.walls,g=>this.explodeGrenade(g),g=>{hearGrenadeLanding(this.enemies,g,this.walls);this.audio.play('grenadeLand',{dx:g.x-p.x,dy:g.y-p.y});});
     this.grenades=this.grenades.filter(g=>g.active);if(p.dead)return;
     this.feedback.update(dt);
     p.shotTimer-=dt;
@@ -315,7 +316,7 @@ export class World {
       }
       updateEnemyReload(e,dt);
       e.timer-=dt;
-      const motion=updateTacticalEnemy(e,dt,this.walls,this.enemies,(...args)=>this.shoot(...args),this.random);
+      const motion=updateGrenadeAvoidance(e,this.grenades,this.walls,dt)??updateTacticalEnemy(e,dt,this.walls,this.enemies,(...args)=>this.shoot(...args),this.random);
       let vx=motion.x,vy=motion.y;
       const oldEX=e.x,oldEY=e.y;
       const injuryScale=injuryMoveScale(e)*C.movementScale;vx*=injuryScale;vy*=injuryScale;

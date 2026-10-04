@@ -66,7 +66,7 @@ export class Audio {
     if(!this.enabled||!this.context||this.context.state!=='running')return;
     const c=this.context,now=c.currentTime;
     const spatial=spatialSound(position.dx,position.dy);
-    const pan=c.createStereoPanner();pan.pan.value=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep'||type==='explosion')?spatial.pan:0;pan.connect(this.master);
+    const pan=c.createStereoPanner();pan.pan.value=(type==='enemyShot'||type==='wallHit'||type==='grenadeLand'||type==='enemyFootstep'||type==='explosion')?spatial.pan:0;pan.connect(this.master);
     const shot=type==='shot'||type==='enemyShot';
     if(type==='explosion'){
       const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();
@@ -75,7 +75,7 @@ export class Audio {
       source.connect(filter);filter.connect(gain);gain.connect(pan);source.start();source.stop(now+.65);
       source.onended=()=>{source.disconnect();filter.disconnect();gain.disconnect();pan.disconnect();};return;
     }
-    const distanceGain=(type==='enemyShot'||type==='wallHit'||type==='enemyFootstep')?spatial.gain:1;
+    const distanceGain=(type==='enemyShot'||type==='wallHit'||type==='grenadeLand'||type==='enemyFootstep')?spatial.gain:1;
     if(type==='reload'||type==='reloadReady'){
       playReload(c,this.noise,pan,type==='reloadReady');return;
     }
@@ -102,7 +102,7 @@ export class Audio {
       noise.connect(filter);filter.connect(envelope);envelope.connect(pan);noise.start();noise.stop(now+.2);
       noise.onended=()=>{noise.disconnect();filter.disconnect();envelope.disconnect();};
     }
-    const sounds={pin:[1800,750,.09,.04],heal:[420,720,.16,.04],footstep:[95,40,.09,.065],enemyFootstep:[85,35,.1,.065],enemyShot:[130,38,.24,.16],shot:[180,45,.12,.12],wallHit:[220,60,.05,.025],impact:[180,65,.075,.05],hit:[90,35,.15,.07],dead:[75,30,.16,.04],wave:[180,220,.2,.018]};
+    const sounds={grenadeLand:[700,110,.12,.055],pin:[1800,750,.09,.04],heal:[420,720,.16,.04],footstep:[95,40,.09,.065],enemyFootstep:[85,35,.1,.065],enemyShot:[130,38,.24,.16],shot:[180,45,.12,.12],wallHit:[220,60,.05,.025],impact:[180,65,.075,.05],hit:[90,35,.15,.07],dead:[75,30,.16,.04],wave:[180,220,.2,.018]};
     const [from,to,duration,volume]=sounds[type]||sounds.impact;
     const oscillator=c.createOscillator(),gain=c.createGain();oscillator.type=shot?'triangle':'sine';
     oscillator.frequency.setValueAtTime(from,now);oscillator.frequency.exponentialRampToValueAtTime(to,now+duration);
