@@ -1,5 +1,5 @@
 import { headAimTarget } from './head-aim.js';
-import { drawGrenades } from './grenade.js';
+import { drawGrenades,drawGrenadePrediction } from './grenade.js';
 import { drawEnemyHitboxes } from './hitbox-overlay.js';
 import { drawDamageScreen,drawSkull } from './damage-screen.js';
 import { drawEnemyIntent } from './enemy-intent.js';
@@ -149,6 +149,7 @@ export class Renderer {
     c.restore();
     if(w.state==='playing'||w.state==='settings'||w.state==='dead')drawDamageScreen(c,p,w.time,C.width,C.height);
     if(input&&w.state==='playing'){
+      drawGrenadePrediction(c,w,input.mouse);
       c.save();const {x,y}=input.mouse;
       if(!w.primedGrenade&&headAimTarget(w,input.mouse))drawSkull(c,x,y);
       else{

@@ -13,12 +13,36 @@ export function updateGrenades(grenades,dt,walls,explode){
   if(g.held){
    g.x=g.owner.x+Math.cos(g.owner.angle||0)*12;g.y=g.owner.y+Math.sin(g.owner.angle||0)*12;g.height=8;
   }else if(g.flightTime>0){
-   g.flightAge=Math.min(g.flightTime,g.flightAge+step);const t=g.flightAge/g.flightTime;
-   g.x=g.startX+(g.endX-g.startX)*t;g.y=g.startY+(g.endY-g.startY)*t;
-   g.height=10*(1-t)+4*CONFIG.grenade.arcHeight*t*(1-t);
+   g.flightAge=Math.min(g.flightTime,g.flightAge+step);Object.assign(g,grenadePosition(g,g.flightAge));
   }
   if(g.fuse<=1e-9){g.active=false;explode(g);}
  }
+}
+export function grenadePosition(g,elapsed){
+ const t=Math.max(0,Math.min(1,elapsed/g.flightTime));
+ return {x:g.startX+(g.endX-g.startX)*t,y:g.startY+(g.endY-g.startY)*t,height:10*(1-t)+4*CONFIG.grenade.arcHeight*t*(1-t)};
+}
+export function grenadePrediction(player,target,walls,fuse){
+ const g=createGrenade(player,target,walls),duration=Math.min(g.flightTime,Math.max(0,fuse));
+ const points=Array.from({length:33},(_,i)=>grenadePosition(g,duration*i/32)),end=points.at(-1);
+ return {points,end,airburst:duration<g.flightTime,
+  radius:Math.sqrt(Math.max(0,CONFIG.grenade.radius**2-end.height**2)),
+  killRadius:Math.sqrt(Math.max(0,CONFIG.grenade.killRadius**2-end.height**2))};
+}
+export function drawGrenadePrediction(c,world,target){
+ if(world.state!=='playing'||!world.primedGrenade?.active||world.player.dead)return;
+ const p=grenadePrediction(world.player,target,world.walls,world.primedGrenade.fuse),{x,y,height}=p.end;
+ c.save();c.lineWidth=1.5;c.strokeStyle='#e8d89abf';c.fillStyle='#e8d89a0b';
+ c.setLineDash([7,6]);c.lineDashOffset=-world.time*12;
+ c.beginPath();c.arc(x,y,p.radius,0,Math.PI*2);c.fill();c.stroke();
+ if(p.killRadius>0){c.strokeStyle='#ef997a9c';c.beginPath();c.arc(x,y,p.killRadius,0,Math.PI*2);c.stroke();}
+ c.setLineDash([]);c.beginPath();
+ p.points.forEach((q,i)=>i?c.lineTo(q.x,q.y-q.height):c.moveTo(q.x,q.y-q.height));
+ c.strokeStyle='#101810b3';c.lineWidth=4;c.stroke();c.strokeStyle='#f2e5b8';c.lineWidth=1.5;c.stroke();
+ if(p.airburst){c.setLineDash([3,4]);c.beginPath();c.moveTo(x,y-height);c.lineTo(x,y);c.stroke();c.setLineDash([]);}
+ c.beginPath();c.arc(x,y,4,0,Math.PI*2);c.stroke();
+ if(p.airburst){c.fillStyle='#ffc69b';c.font='12px sans-serif';c.textAlign='center';c.fillText('공중 폭발 예상',x,y-height-15);}
+ c.restore();
 }
 export function blastDamage(g,target,walls){
  const c=CONFIG.grenade,d=Math.hypot(target.x-g.x,target.y-g.y,g.height||0);
