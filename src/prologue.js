@@ -39,8 +39,8 @@ export class Prologue {
     this.executionShots=[];
     this.allies=[0,1,2].map(i=>({x:520+i*88,y:330,angle:Math.PI/2,unarmed:true,kneeling:true,restrained:true,hooded:true,alive:true}));
     this.officer={x:850,y:265,angle:Math.PI,unarmed:true,departed:false};
-    this.guards=this.allies.map((ally,i)=>({x:ally.x,y:195,vision:SCOUT_VISION,courage:['cautious','steady','resolute'][i],radius:17,speed:56,routeIndex:0,angle:Math.atan2(ally.y+1-195,4),rifleLowered:false,aimDuration:.75,burstCount:2,burstInterval:.207,
-      ammo:CONFIG.weapon.magazineSize,fireInterval:1.44,bulletSpeed:1035,damage:10,accuracy:48,trackAim:true,timer:1+i*.5,aimRemaining:0}));
+    this.guards=this.allies.map((ally,i)=>({x:ally.x,y:195,vision:SCOUT_VISION,courage:['cautious','steady','resolute'][i],radius:17,speed:56,routeIndex:0,angle:Math.atan2(ally.y+1-195,4),rifleLowered:false,aimDuration:.75,burstCount:2,burstInterval:.3105,
+      ammo:CONFIG.weapon.magazineSize,fireInterval:2.16,bulletSpeed:1035,damage:10,accuracy:48,trackAim:true,timer:1+i*.5,aimRemaining:0}));
     for(const [i,g]of this.guards.entries()){initBody(g);g.role='assault';g.skill='rookie';g.patrolPoints=this.searchRoutes[i];}
   }
   get caption(){

@@ -34,7 +34,7 @@ test('trained aim follows visible movement before firing then locks for the burs
   updateEnemyFire(e,.18,{x:400,y:100},fire);
   assert.ok(shots[0]>.2);
   const angle=e.aimAngle;
-  updateEnemyFire(e,.15,{x:400,y:-100},fire);
+  updateEnemyFire(e,e.burstInterval,{x:400,y:-100},fire);
   assert.equal(e.aimAngle,angle);
   updateEnemyFire(e,.2,{x:400,y:-100},fire,false);
   assert.equal(shots.length,2);
