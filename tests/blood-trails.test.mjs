@@ -45,7 +45,7 @@ test('each missing arm removes 25 speed, without compounding across frames',()=>
 
 test('actual gunshot leaves terrain blood and a moving wounded enemy leaves a trail',()=>{
   const w=new World({play(){}},()=>.25);w.start();w.walls=[];w.enemies=[];
-  w.spawnEnemy('assault',600,360);const e=w.enemies[0];e.born=0;e.body.torso.armor=0;e.speed=0;e.timer=100;
+  w.spawnEnemy('assault',600,360);const e=w.enemies[0];e.born=0;e.angle=Math.PI;e.body.torso.armor=0;e.speed=0;e.timer=100;
   const idle={mouse:{x:900,y:360,down:false},movement:()=>({x:0,y:0})};
   w.shoot(580,360,0,false,30,1550);w.update(1/120,idle);
   assert.equal(e.body.torso.damage,30);const count=w.effects.blood.marks.length;assert.ok(count>0);

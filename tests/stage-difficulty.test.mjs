@@ -5,11 +5,11 @@ import { ENEMIES } from '../src/config.js';
 import { updateAssault } from '../src/assault-ai.js';
 import { updateCoverDefender } from '../src/cover-ai.js';
 
-test('each later sector adds one veteran and one resolute soldier, retaining both roles',()=>{
+test('early sectors reduce enemy count and veterans while retaining both roles',()=>{
   STAGES.forEach((stage,index)=>{
-    assert.equal(stage.enemies.length,6);
-    assert.equal(stage.enemies.filter(e=>e.skill==='veteran').length,index+1);
-    assert.equal(stage.enemies.filter(e=>e.courage==='resolute').length,index+1);
+    assert.equal(stage.enemies.length,index===0?4:index===1?5:6);
+    assert.equal(stage.enemies.filter(e=>e.skill==='veteran').length,Math.floor(index/2));
+    assert.equal(stage.enemies.filter(e=>e.courage==='resolute').length,index>=3?1:0);
     assert.ok(stage.enemies.some(e=>e.type==='assault'));
     assert.ok(stage.enemies.some(e=>e.type==='shooter'));
   });

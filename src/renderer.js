@@ -1,3 +1,5 @@
+import {drawDoor} from './doors.js';
+import { drawSectors } from './sectors.js';
 import { blastScreenState,drawBlastScreen } from './blast-screen.js';
 import { headAimTarget } from './head-aim.js';
 import { drawGrenades,drawGrenadePrediction } from './grenade.js';
@@ -28,6 +30,7 @@ export class Renderer {
     drawTerrain(this.background.getContext('2d'),stage);this.backgroundStage=stage;
   }
   wall(c,w){
+    if(w.kind==='door'){drawDoor(c,w);return;}
     c.fillStyle='#0d130d70';c.fillRect(w.x+9,w.y+10,w.w,w.h);
     if(w.material==='sandbag'){
       c.fillStyle='#5b5541';c.fillRect(w.x,w.y,w.w,w.h);
@@ -106,6 +109,7 @@ export class Renderer {
       }
       c.restore();
     }
+    drawSectors(c,w);
     const exit=w.stage.exit;
     if(!w.prologue||w.prologue.phase==='revenge'){
     c.fillStyle='#151e17';c.fillRect(exit.x-18,exit.y-45,38,90);
@@ -143,7 +147,7 @@ export class Renderer {
     // Normal player visibility resumes as soon as escape control is returned.
     if(!storyOverview)this.drawFog(c,w);
     // A wall does not shade its own surface, but other walls and rear vision still occlude it.
-    for(const wall of w.walls){
+    for(const wall of [...w.walls,...(w.doors||[]).filter(d=>d.open)]){
       const surface=visionPolygon(p,w.walls.filter(other=>other!==wall));
       c.save();c.beginPath();
       surface.forEach((point,i)=>i?c.lineTo(point.x,point.y):c.moveTo(point.x,point.y));

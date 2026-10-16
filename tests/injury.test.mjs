@@ -58,7 +58,7 @@ test('player and enemy use identical armor and wounds, with armor impacts produc
  w.hurt(30,{vx:1,vy:0},{region:'torso'});assert.ok(w.effects.blood.marks.length>0);assert.equal(w.player.body.torso.damage,30);
 });
 test('real projectile collision kills only after head armor is broken and counts once',()=>{
- const w=new World({play(){}},()=>0);w.start();w.walls=[];w.enemies=[];w.spawnEnemy('assault',300,360);const e=w.enemies[0];e.born=0;e.timer=100;e.speed=0;
+ const w=new World({play(){}},()=>0);w.start();w.walls=[];w.enemies=[];w.spawnEnemy('assault',300,360);const e=w.enemies[0];e.born=0;e.angle=Math.PI;e.timer=100;e.speed=0;
  e.body.head.armor=0;w.shoot(285,360,0,false,30,1550,false,CONFIG.weapon.bulletRange,e);w.update(CONFIG.step,idle);
  assert.ok(e.dead);assert.equal(w.kills,1);w.update(CONFIG.step,idle);assert.equal(w.kills,1);
 });

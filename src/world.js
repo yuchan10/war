@@ -1,3 +1,5 @@
+import {setupDoors,interactDoor,updateDoors} from './doors.js';
+import { updateSectors } from './sectors.js';
 import { triggerBlastShock } from './blast-screen.js';
 import { headAimTarget } from './head-aim.js';
 import { hearGrenadeLanding,updateGrenadeAvoidance } from './grenade-ai.js';
@@ -43,7 +45,7 @@ export class World {
     this.deathRemaining=0;this.playerCorpse=null;this.audio.setDeathEffect?.(false);
     this.grenades=[];this.grenadeAmmo=C.grenade.count;this.grenadeCooldown=0;this.primedGrenade=null;this.primaryHeld=false;this.grenadeTriggerLock=false;this.audio.stopRinging?.();
     this.battlefieldHistory=[];
-    this.prologue=null;
+    this.prologue=null;this.doors=[];
     this.walls=STAGES[0].walls;
     this.stage=STAGES[0];
     this.exitOpen=false;
@@ -58,7 +60,7 @@ export class World {
     this.enemies=[];
     this.bullets.clear();
     this.particles.clear();
-    this.score=0;
+    this.score=0;this.completedStages=[];this.runRevision=(this.runRevision||0)+1;this.headshots=0;
     this.wave=0;
     this.time=0;
     this.shake=0;this.blastShock=null;
@@ -101,15 +103,15 @@ export class World {
     if(this.wave>0||this.prologue)this.archiveBattlefield();
     this.prologue=null;
     this.wave++;
-    this.stage=STAGES[this.wave-1];this.stageStartedAt=this.time;
-    this.walls=this.stage.walls;
+    this.stage=STAGES[this.wave-1];this.stageStartedAt=this.time;this.sectorIndex=0;this.sectorHold=0;this.sectorRemaining=0;this.stageKills=this.kills;this.stageHeadshots=this.headshots;
+    setupDoors(this);
     this.exitOpen=false;
     this.enemies=[];
     this.bullets.clear();this.particles.clear();this.effects.clear();this.feedback.reset();
     this.pickups.clear();
     Object.assign(this.player,this.stage.spawn,{knockX:0,knockY:0,shotTimer:0});
     this.weapon.reloadRemaining=0;
-    for(const enemy of this.stage.enemies)this.spawnEnemy(enemy.type,enemy.x,enemy.y,enemy.cover,enemy.advancePoint,enemy.skill,enemy.courage);
+    for(const enemy of this.stage.enemies){this.spawnEnemy(enemy.type,enemy.x,enemy.y,enemy.cover,enemy.advancePoint,enemy.skill,enemy.courage);Object.assign(this.enemies.at(-1),{zoneIndex:enemy.zoneIndex,sectorAlert:enemy.zoneIndex===0});}
     this.clearTimer=0;this.state='playing';this.audio.play('wave');
   }
   spawnEnemy(type,x=900,y=360,cover=null,advancePoint=null,skill=null,courage='steady') {
@@ -147,7 +149,7 @@ export class World {
   }
   killEnemy(e){
     if(e.deathHandled)return;notifyCasualty(e,this.enemies,this.walls);e.dead=true;e.active=false;e.deathHandled=true;
-    this.kills++;this.score+=e.score??180;this.feedback.killed(this.time);
+    this.kills++;if(e.headDestroyed)this.headshots++;this.score+=e.score??180;this.feedback.killed(this.time);
     const corpse=this.effects.fallen(e);this.pickups.drop(e,this.walls,this.random,corpse);this.audio.play('dead');
   }
   woundEffect(e,result,bullet,hit){
@@ -283,8 +285,10 @@ export class World {
     updateFootsteps(p,oldPX,oldPY,p,(...args)=>{this.audio.play(...args);this.emitPlayerSound('footstep');},true);
     moveKnockback(p,dt,this.walls);
     animateStride(p,oldPX,oldPY);
+    updateDoors(this,dt);
+    const interaction=input.consumeLoot?.(),usedDoor=interaction&&interactDoor(this);
     const changingInterrupted=!!(mv.x||mv.y||input.mouse.down||!input.lootHeld?.());
-    if(input.consumeLoot?.()&&!changingInterrupted&&!this.pickups.changing){
+    if(interaction&&!usedDoor&&!changingInterrupted&&!this.pickups.changing){
       const rounds=this.pickups.collectAmmo(p,this.walls,this.weapon);
       const grenades=this.pickups.collectGrenades(p,this.walls,this);
       if(this.pickups.start(p,this.walls)){p.knifeSwing=0;this.feedback.show('부위당 2.5초 · E 유지 · 떼거나 움직이면 중단');}
@@ -306,6 +310,7 @@ export class World {
       this.audio.play('shot');
       if(this.weapon.ammo===0&&this.weapon.reload())this.audio.play('reload');
     }
+    updateSectors(this,dt);
     prepareSquad(this.enemies,p,this.walls,dt);
     for(const e of this.enemies) {
       if(!e.active)continue;
@@ -318,7 +323,7 @@ export class World {
       }
       updateEnemyReload(e,dt);
       e.timer-=dt;
-      const motion=updateGrenadeAvoidance(e,this.grenades,this.walls,dt)??updateTacticalEnemy(e,dt,this.walls,this.enemies,(...args)=>this.shoot(...args),this.random);
+      const motion=updateGrenadeAvoidance(e,this.grenades,this.walls,dt)??(e.holdingSector?{x:0,y:0}:updateTacticalEnemy(e,dt,this.walls,this.enemies,(...args)=>this.shoot(...args),this.random));
       let vx=motion.x,vy=motion.y;
       const oldEX=e.x,oldEY=e.y;
       const injuryScale=injuryMoveScale(e)*C.movementScale;vx*=injuryScale;vy*=injuryScale;
@@ -358,13 +363,14 @@ export class World {
       q.y+=q.vy*dt;
       if(q.life<=0)q.active=false;
     }this.enemies=this.enemies.filter(e=>e.active);
-    if(this.state==='playing'&&this.enemies.length===0) {
+    if(this.state==='playing'&&this.enemies.length===0&&(!this.stage.zones||this.sectorIndex>=this.stage.zones.length)) {
       if(!this.exitOpen){
         this.exitOpen=true;this.bullets.clear();
         this.feedback.show(this.feedback.damageTaken===0?'무피격 돌파 · 출구 개방':'출구 개방');
       }
       const exit=this.stage.exit;
       if(Math.hypot(p.x-exit.x,p.y-exit.y)<exit.radius){
+        if(this.wave>0)this.completedStages.push({stage:this.wave,elapsedMs:Math.round((this.time-this.stageStartedAt)*1000),kills:this.kills-this.stageKills,headshots:this.headshots-this.stageHeadshots,hits:this.feedback.damageTaken});
         if(this.wave===STAGES.length){this.archiveBattlefield();this.state='won';}
         else {this.nextStage();input.clear?.();}
       }

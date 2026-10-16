@@ -2,7 +2,7 @@ import {updateContact} from './contact-memory.js';
 import {hasLineOfSight} from './arena.js';
 const live=e=>e.active!==false&&!e.dead&&!e.subdued&&!(e.born>0);
 export function prepareSquad(enemies,player,walls,dt){
- const active=enemies.filter(live);
+ const active=enemies.filter(e=>live(e)&&!e.holdingSector);
  // Stable pairs keep casualties meaningful instead of re-pairing every frame.
  const fresh=active.filter(e=>e.squadId===undefined);
  let id=Math.max(-1,...enemies.map(e=>e.squadId??-1))+1;

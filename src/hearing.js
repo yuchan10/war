@@ -1,6 +1,6 @@
 import { hasLineOfSight } from './arena.js';
 
-export const HEARING={gunshot:850,footstep:150,occludedScale:.65,memory:12};
+export const HEARING={door:220,gunshot:850,footstep:150,occludedScale:.65,memory:12};
 
 export function hearSound(listeners,source,type,walls=[],random=Math.random){
   const range=HEARING[type];

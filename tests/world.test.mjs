@@ -61,7 +61,7 @@ test('movement stays inside arena and armor absorbs rapid hits',()=> {
 test('stage waits for exit and all enemies before advancing',()=> {
   const w=new World(audio);w.start();assert.equal(w.enemies.length,w.stage.enemies.length);
   Object.assign(w.player,w.stage.exit);w.update(CONFIG.step,idle);assert.equal(w.wave,1);
-  w.player.x=150;w.enemies=[];
+  w.player.x=150;w.enemies=[];w.sectorIndex=w.stage.zones.length;
   for(let i=0;i<260;i++)w.update(CONFIG.step,idle);
   assert.equal(w.wave,1);assert.equal(w.exitOpen,true);
   const damage=w.player.damage;w.player.bloodLoss=50;w.weapon.consume();
@@ -71,7 +71,7 @@ test('stage waits for exit and all enemies before advancing',()=> {
 });
 test('six fixed stages finish at final exit without upgrades',()=>{
   const w=new World(audio);w.start();
-  for(let i=1;i<=STAGES.length;i++){w.enemies=[];Object.assign(w.player,w.stage.exit);w.update(CONFIG.step,idle);}
+  for(let i=1;i<=STAGES.length;i++){w.enemies=[];w.sectorIndex=w.stage.zones.length;Object.assign(w.player,w.stage.exit);w.update(CONFIG.step,idle);}
   assert.equal(w.state,'won');
 });
 test('pause does not simulate and reset removes previous run objects',()=> {

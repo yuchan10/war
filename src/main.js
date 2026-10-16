@@ -1,3 +1,4 @@
+import {RankingClient} from './ranking.js';
 import { Settings } from './settings.js';
 import {
   CONFIG
@@ -23,7 +24,7 @@ const input=new Input(canvas,()=>ui.toggleSettings(),()=>ui.toggleSound());
 let storage;try{storage=localStorage;}catch{}
 const settings=new Settings(storage);
 const renderer=new Renderer(canvas,settings);
-ui=new UI(world,input,audio,settings);
+ui=new UI(world,input,audio,settings);ui.ranking=new RankingClient();
 let last=performance.now(),accumulator=0,uiTime=0;
 document.addEventListener('visibilitychange',()=> {
   if(document.hidden&&world.state==='playing')ui.openSettings();

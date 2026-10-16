@@ -6,8 +6,8 @@ import { ENEMIES } from '../src/config.js';
 import { updateWounded } from '../src/wounded-ai.js';
 
 const soldier=courage=>({...ENEMIES.assault,courage,wasHit:true,x:500,y:350,angle:0,timer:0});
-test('stages progressively add resolute soldiers and spawning preserves courage',()=>{
-  STAGES.forEach((stage,index)=>assert.equal(stage.enemies.filter(e=>e.courage==='resolute').length,index+1));
+test('later stages introduce limited resolute soldiers and spawning preserves courage',()=>{
+  STAGES.forEach((stage,index)=>assert.equal(stage.enemies.filter(e=>e.courage==='resolute').length,index>=3?1:0));
   const w=new World({play(){}});w.start();
   assert.deepEqual(w.enemies.map(e=>e.courage),w.stage.enemies.map(e=>e.courage));
 });

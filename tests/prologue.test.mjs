@@ -49,7 +49,7 @@ test('finishing an exposed wounded searcher with a knife starts normal combat',(
  advance(w,.02,{...idle,consumeReload:()=>false,mouse:{x:650,y:330,down:true}});assert.equal(w.weapon.ammo,23);
  for(const e of w.enemies)e.active=false;
  Object.assign(w.player,PROLOGUE_STAGE.exit);advance(w,2);
- assert.equal(w.prologue,null);assert.equal(w.wave,1);assert.equal(w.enemies.length,6);
+ assert.equal(w.prologue,null);assert.equal(w.wave,1);assert.equal(w.enemies.length,4);
 });
 test('knife requires close range and an unobstructed path',()=>{
  const w=new World({play(){}});w.startPrologue();
